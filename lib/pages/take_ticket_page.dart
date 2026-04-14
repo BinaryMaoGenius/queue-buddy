@@ -377,7 +377,9 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
         child: SolobaAssistant(
           onSelectService: (serviceId) {
             setState(() {
-              selectedService = serviceId;
+              if (!selectedServices.contains(serviceId)) {
+                selectedServices.add(serviceId);
+              }
             });
           },
         ).animate().slideY(begin: 1, duration: 800.ms, curve: Curves.easeOutBack),
