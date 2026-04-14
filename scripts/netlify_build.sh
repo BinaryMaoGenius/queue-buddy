@@ -23,7 +23,6 @@ flutter pub get
 
 # 5. Build Web complet (Force HTML renderer pour éviter les pages blanches CanvasKit)
 flutter build web --release \
-  --web-renderer html \
   --dart-define=HF_TOKEN=$HF_TOKEN \
   --dart-define=ASR_SPACE_URL=$ASR_SPACE_URL
 
