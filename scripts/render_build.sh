@@ -46,9 +46,7 @@ flutter pub get -v
 echo "--- 🏗️ Construction de l'application Web (Mode Verbeux) ---"
 # On ajoute le flag -v à flutter build pour un maximum de détails si ça plante
 flutter build web --release -v \
-  --web-renderer html \
   --no-tree-shake-icons \
-  --dart2js-optimization=O1 \
   --dart-define=HF_TOKEN=$HF_TOKEN \
   --dart-define=ASR_SPACE_URL=$ASR_SPACE_URL
 
