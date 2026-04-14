@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "637182578674",
+    "project_id": "projet-banque-1f8da",
+    "storage_bucket": "projet-banque-1f8da.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637182578674:android:2ec36be5d701149d9f656b",
+        "android_client_info": {
+          "package_name": "com.banques.aurabanques"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2wajtQhspTRMbwByRF3gZOurd3nf-8rg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

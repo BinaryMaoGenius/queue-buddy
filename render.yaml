@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: sira-web
+    runtime: static
+    buildCommand: bash render_build.sh
+    staticPublishPath: deploy/web
+    # Les variables d'environnement suivantes peuvent être ajoutées via l'UI de Render si besoin
+    envVars:
+      - key: HF_TOKEN
+        sync: false
+      - key: ASR_SPACE_URL
+        value: https://binaryMao-sira-asr.hf.space/transcribe

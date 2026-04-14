@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper to check if user is authenticated (Optional depends on your setup)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Agences: Tout le monde peut lire
+    match /agences/{agenceId} {
+      allow read: if true;
+      allow write: if false; // Seul l'admin (via console) peut modifier les agences
+    }
+
+    // Guichets: Tout le monde peut lire
+    match /guichets/{guichetId} {
+      allow read: if true;
+      allow write: if false; 
+    }
+
+    // Tickets:
+    match /tickets/{ticketId} {
+      // Lecture: Tout le monde peut voir son ticket ou l'agent peut voir tous les tickets
+      allow read: if true; 
+      
+      // Creation: Tout le monde peut prendre un ticket
+      allow create: if request.resource.data.statut == 'enAttente'
+                    && request.resource.data.keys().hasAll(['agence_id', 'numero_ticket', 'client_nom', 'statut', 'position']);
+      
+      // Update: Seul l'agent (ou via le prototype pour l'instant) peut changer le statut
+      // Dans un vrai système, on vérifierait request.auth.token.role == 'agent'
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasAny(['statut', 'position', 'call_time', 'validation_time']);
+    }
+  }
+}
