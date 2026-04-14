@@ -1,4 +1,0 @@
-﻿#!/bin/bash
-echo '==> Optimisation memoire pour Render...'
-export MALLOC_ARENA_MAX=2
-flutter build web --release --no-tree-shake-icons --dart2js-optimization=O1
