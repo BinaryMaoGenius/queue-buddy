@@ -141,7 +141,11 @@ class DjeliaSpeechService {
       if (!kIsWeb) {
         final diskBytes = await _getFromDiskCache(cacheKey);
         if (diskBytes != null) {
-          _ttsCache[cacheKey] = _SynthesisResult(diskBytes, format);
+          _ttsCache[cacheKey] = _SynthesisResult(
+            bytes: diskBytes,
+            format: format,
+            source: 'disk',
+          );
           return diskBytes;
         }
       }

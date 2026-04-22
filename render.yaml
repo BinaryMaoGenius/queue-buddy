@@ -9,3 +9,5 @@ services:
         sync: false
       - key: ASR_SPACE_URL
         value: https://binaryMao-sira-asr.hf.space/transcribe
+      - key: DJELIA_API_KEY
+        sync: false
