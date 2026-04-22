@@ -1,36 +1,229 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper to check if user is authenticated (Optional depends on your setup)
-    function isAuthenticated() {
+    // -------------------------
+    // Helpers
+    // -------------------------
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    // Agences: Tout le monde peut lire
+    function isAgent() {
+      return isSignedIn() &&
+        (request.auth.token.role == 'agent' || request.auth.token.role == 'admin');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    function isValidPhone(phone) {
+      return phone is string &&
+        phone.size() >= 8 &&
+        phone.size() <= 15 &&
+        phone.matches('^[0-9]{8,15}$');
+    }
+
+    function isValidName(name) {
+      return name is string && name.size() >= 2 && name.size() <= 120;
+    }
+
+    function isValidOperation(op) {
+      return op is string && op.size() >= 2 && op.size() <= 120;
+    }
+
+    function isValidEmbeddedClient(client) {
+      return client is map &&
+        client.keys().hasOnly(['id', 'nom', 'tel']) &&
+        (!('id' in client) || client.id is string) &&
+        ('nom' in client) &&
+        ('tel' in client) &&
+        isValidName(client.nom) &&
+        isValidPhone(client.tel);
+    }
+
+    function isValidTicketStatus(status) {
+      return status in ['enAttente', 'appele', 'valide'];
+    }
+
+    // -------------------------
+    // Agences
+    // -------------------------
     match /agences/{agenceId} {
       allow read: if true;
-      allow write: if false; // Seul l'admin (via console) peut modifier les agences
+
+      allow create, update: if isAdmin() &&
+        request.resource.data.keys().hasOnly([
+          'nom',
+          'adresse',
+          'ville',
+          'latitude',
+          'longitude',
+          'enAttenteCount',
+          'isOpen',
+          'peakHours'
+        ]) &&
+        request.resource.data.nom is string &&
+        request.resource.data.adresse is string &&
+        request.resource.data.ville is string &&
+        request.resource.data.latitude is number &&
+        request.resource.data.longitude is number &&
+        request.resource.data.enAttenteCount is int &&
+        request.resource.data.enAttenteCount >= 0 &&
+        request.resource.data.isOpen is bool &&
+        request.resource.data.peakHours is string;
+
+      allow delete: if false;
     }
 
-    // Guichets: Tout le monde peut lire
+    // -------------------------
+    // GABs
+    // -------------------------
+    match /gabs/{gabId} {
+      allow read: if true;
+
+      allow create, update: if isAgent() &&
+        request.resource.data.keys().hasOnly(['agence_id', 'numero', 'statut']) &&
+        request.resource.data.agence_id is string &&
+        request.resource.data.numero is int &&
+        request.resource.data.numero > 0 &&
+        request.resource.data.statut in ['online', 'maintenance', 'offline'];
+
+      allow delete: if false;
+    }
+
+    // -------------------------
+    // Guichets
+    // -------------------------
     match /guichets/{guichetId} {
       allow read: if true;
-      allow write: if false; 
+
+      allow create, update: if isAgent() &&
+        request.resource.data.keys().hasOnly(['agence_id', 'numero', 'statut']) &&
+        request.resource.data.agence_id is string &&
+        request.resource.data.numero is int &&
+        request.resource.data.numero > 0 &&
+        request.resource.data.statut in ['open', 'closed', 'paused'];
+
+      allow delete: if false;
     }
 
-    // Tickets:
+    // -------------------------
+    // Clients
+    // -------------------------
+    match /clients/{clientId} {
+      // Public read is required for unauthenticated "find or create client" flow.
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly([
+          'nom',
+          'tel',
+          'created_at',
+          'updated_at'
+        ]) &&
+        isValidName(request.resource.data.nom) &&
+        isValidPhone(request.resource.data.tel) &&
+        request.resource.data.created_at is timestamp &&
+        request.resource.data.updated_at is timestamp;
+
+      allow update: if request.resource.data.keys().hasOnly([
+          'nom',
+          'tel',
+          'created_at',
+          'updated_at'
+        ]) &&
+        isValidName(request.resource.data.nom) &&
+        isValidPhone(request.resource.data.tel) &&
+        request.resource.data.created_at is timestamp &&
+        request.resource.data.updated_at is timestamp;
+
+      allow delete: if false;
+    }
+
+    // -------------------------
+    // Agency counters (transactional numbering)
+    // -------------------------
+    match /agence_counters/{agenceId} {
+      // Required for unauthenticated transactional ticket creation flow.
+      allow read: if true;
+
+      allow create, update: if request.resource.data.keys().hasOnly([
+          'last_ticket_number',
+          'waiting_count',
+          'updated_at'
+        ]) &&
+        request.resource.data.last_ticket_number is int &&
+        request.resource.data.last_ticket_number >= 100 &&
+        request.resource.data.waiting_count is int &&
+        request.resource.data.waiting_count >= 0 &&
+        request.resource.data.updated_at is timestamp;
+
+      allow delete: if false;
+    }
+
+    // -------------------------
+    // Tickets
+    // -------------------------
     match /tickets/{ticketId} {
-      // Lecture: Tout le monde peut voir son ticket ou l'agent peut voir tous les tickets
-      allow read: if true; 
-      
-      // Creation: Tout le monde peut prendre un ticket
-      allow create: if request.resource.data.statut == 'enAttente'
-                    && request.resource.data.keys().hasAll(['agence_id', 'numero_ticket', 'client_nom', 'statut', 'position']);
-      
-      // Update: Seul l'agent (ou via le prototype pour l'instant) peut changer le statut
-      // Dans un vrai système, on vérifierait request.auth.token.role == 'agent'
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasAny(['statut', 'position', 'call_time', 'validation_time']);
+      // Read is public for queue tracking UI.
+      allow read: if true;
+
+      // Ticket creation by public clients with strict schema.
+      allow create: if request.resource.data.keys().hasOnly([
+          'agence_id',
+          'agence_nom',
+          'numero_ticket',
+          'client',
+          'client_nom',
+          'client_tel',
+          'type_operation',
+          'statut',
+          'position',
+          'created_at'
+        ]) &&
+        request.resource.data.agence_id is string &&
+        request.resource.data.agence_nom is string &&
+        request.resource.data.numero_ticket is string &&
+        request.resource.data.numero_ticket.matches('^[A-Z]-[0-9]{1,8}$') &&
+        isValidEmbeddedClient(request.resource.data.client) &&
+        request.resource.data.client_nom == request.resource.data.client.nom &&
+        request.resource.data.client_tel == request.resource.data.client.tel &&
+        isValidOperation(request.resource.data.type_operation) &&
+        request.resource.data.statut == 'enAttente' &&
+        request.resource.data.position is int &&
+        request.resource.data.position >= 1 &&
+        request.resource.data.created_at is timestamp;
+
+      // Agent queue operations.
+      allow update: if (
+          isAgent() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'statut',
+            'position',
+            'call_time',
+            'validation_time'
+          ]) &&
+          isValidTicketStatus(request.resource.data.statut) &&
+          request.resource.data.position is int &&
+          request.resource.data.position >= 0 &&
+          (!('call_time' in request.resource.data) || request.resource.data.call_time is timestamp) &&
+          (!('validation_time' in request.resource.data) || request.resource.data.validation_time is timestamp)
+        ) || (
+          // Public feedback update with strict constraints.
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'comment']) &&
+          request.resource.data.rating is int &&
+          request.resource.data.rating >= 1 &&
+          request.resource.data.rating <= 5 &&
+          (!('comment' in request.resource.data) ||
+            (request.resource.data.comment is string && request.resource.data.comment.size() <= 500))
+        );
+
+      allow delete: if false;
+    }
+
+    // Deny any unspecified collection by default.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -1,0 +1,66 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function hasValidName(fileName) {
+      return fileName.matches('^[A-Za-z0-9._-]{1,120}$');
+    }
+
+    function isImage() {
+      return request.resource != null &&
+             request.resource.contentType.matches('image/.*');
+    }
+
+    function isAudio() {
+      return request.resource != null &&
+             request.resource.contentType.matches('audio/.*');
+    }
+
+    function isPdf() {
+      return request.resource != null &&
+             request.resource.contentType == 'application/pdf';
+    }
+
+    function maxSizeMb(mb) {
+      return request.resource != null &&
+             request.resource.size <= mb * 1024 * 1024;
+    }
+
+    // Public, read-only files (e.g. app-published assets)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Publicly readable ticket exports, upload constrained to PDF and size.
+    match /tickets/{ticketId}/{fileName} {
+      allow read: if true;
+      allow create: if hasValidName(fileName) &&
+                    isPdf() &&
+                    maxSizeMb(5);
+      allow update, delete: if false;
+    }
+
+    // Private audio uploads (e.g. ASR inputs), no public read.
+    match /uploads/audio/{ticketId}/{fileName} {
+      allow read: if false;
+      allow create: if hasValidName(fileName) &&
+                    isAudio() &&
+                    maxSizeMb(15);
+      allow update, delete: if false;
+    }
+
+    // Private image uploads (e.g. screenshots/QR captures), no public read.
+    match /uploads/images/{ticketId}/{fileName} {
+      allow read: if false;
+      allow create: if hasValidName(fileName) &&
+                    isImage() &&
+                    maxSizeMb(10);
+      allow update, delete: if false;
+    }
+
+    // Default deny for everything else.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

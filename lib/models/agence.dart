@@ -35,11 +35,7 @@ class Agence {
     );
   }
 
-  Agence copyWith({
-    int? enAttenteCount,
-    bool? isOpen,
-    String? peakHours,
-  }) {
+  Agence copyWith({int? enAttenteCount, bool? isOpen, String? peakHours}) {
     return Agence(
       id: id,
       nom: nom,
@@ -50,63 +46,6 @@ class Agence {
       enAttenteCount: enAttenteCount ?? this.enAttenteCount,
       isOpen: isOpen ?? this.isOpen,
       peakHours: peakHours ?? this.peakHours,
-    );
-  }
-}
-
-class GAB {
-  final String id;
-  final String agenceId;
-  final int numero;
-  final String statut;
-
-  GAB({
-    required this.id,
-    required this.agenceId,
-    required this.numero,
-    required this.statut,
-  });
-
-  factory GAB.fromFirestore(String id, Map<String, dynamic> data) {
-    return GAB(
-      id: id,
-      agenceId: data['agence_id'] ?? '',
-      numero: data['numero'] ?? 0,
-      statut: data['statut'] ?? 'offline',
-    );
-  }
-}
-
-class Guichet {
-  final String id;
-  final String agenceId;
-  final int numero;
-  final String statut;
-
-  Guichet({
-    required this.id,
-    required this.agenceId,
-    required this.numero,
-    required this.statut,
-  });
-
-  factory Guichet.fromFirestore(String id, Map<String, dynamic> data) {
-    return Guichet(
-      id: id,
-      agenceId: data['agence_id'] ?? '',
-      numero: data['numero'] ?? 0,
-      statut: data['statut'] ?? 'closed',
-    );
-  }
-
-  Guichet copyWith({
-    String? statut,
-  }) {
-    return Guichet(
-      id: id,
-      agenceId: agenceId,
-      numero: numero,
-      statut: statut ?? this.statut,
     );
   }
 }
