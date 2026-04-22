@@ -41,8 +41,14 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
     _firebaseService = context.read<FirebaseService>();
     _subscribeToNotifications();
 
-    // Trigger success notification
-    _notifService.onTicketTaken(widget.ticket.id, widget.ticket.numeroTicket);
+    // Trigger success notification + cache scheduled "your turn" alert
+    _notifService.onTicketTaken(
+      widget.ticket.id,
+      widget.ticket.numeroTicket,
+      estimatedWaitMinutes:
+          widget.ticket.position > 0 ? widget.ticket.position * 5 : 5,
+      createdAt: widget.ticket.createdAt,
+    );
 
     // Success banner animation
     _successController = AnimationController(

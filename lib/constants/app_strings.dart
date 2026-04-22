@@ -90,6 +90,8 @@ class AppStrings {
   static const String notifYourTurn = "C'est votre tour !";
   static const String notifYourTurnBody =
       "Veuillez vous présenter au guichet maintenant.";
+  static const String notifYourTurnBambaraSpeech =
+      "I ka waati sera. I ka taa guichet la sisan.";
   static const String notifications = "Notifications";
   static const String noNotifications = "Aucune notification";
 
