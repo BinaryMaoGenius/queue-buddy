@@ -1,5 +1,8 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
+
+import 'djelia_speech_service.dart';
 
 class SolobaResult {
   final String text;
@@ -22,44 +25,72 @@ class SolobaResult {
 class SolobaService {
   // 1. ENDPOINT LOCAL (Pour le développement)
   static const String _localEndpoint = 'http://localhost:8000/transcribe';
-  
+
   // 2. ENDPOINT SPACE HF (Votre serveur dédié en prod)
   // Basé sur votre compte : https://huggingface.co/binaryMao
-  static const String _spaceUrl = String.fromEnvironment('ASR_SPACE_URL', defaultValue: 'https://binaryMao-sira-asr.hf.space/transcribe');
-  
+  static const String _spaceUrl = String.fromEnvironment(
+    'ASR_SPACE_URL',
+    defaultValue: 'https://binaryMao-sira-asr.hf.space/transcribe',
+  );
+
   // 3. ENDPOINT INFERENCE API (Backup gratuit si le Space est éteint)
-  static const String _hfInferenceUrl = 'https://api-inference.huggingface.co/models/RobotsMali/soloni-114m-tdt-ctc-v3';
-  
+  static const String _hfInferenceUrl =
+      'https://api-inference.huggingface.co/models/RobotsMali/soloni-114m-tdt-ctc-v3';
+
   static const String _hfToken = String.fromEnvironment('HF_TOKEN');
-  
+
+  final DjeliaSpeechService _djelia = DjeliaSpeechService();
+
   // Noms de modèles pour le tracking des résultats
   static const String modelName = "Soloni-ASR";
   static const String modelVersion = "v3-ctc";
 
   Future<SolobaResult> recognizeSpeech(List<int> audioBytes) async {
-    // Ordre de priorité : Space (Dédié) > Local (Dev) > Inference API (Backup)
-    
-    // Essayer d'abord le Space HF (Production)
+    // Ordre de priorité : Djelia (principal) > Space (dédié) > Local (dev) > Inference API (backup)
+
+    // 0) Djelia ASR (prioritaire)
+    try {
+      if (_djelia.isConfigured) {
+        print("[Soloba] Tentative ASR Djelia v2...");
+        final text = await _djelia.transcribe(
+          Uint8List.fromList(audioBytes),
+          translateToFrench: false,
+          useV2: true,
+        );
+        if (text.trim().isNotEmpty) {
+          return analyzeIntent(text);
+        }
+        throw Exception("Transcription Djelia vide");
+      } else {
+        print("[Soloba] DJELIA_API_KEY non configurée, fallback activé.");
+      }
+    } catch (e) {
+      print("[Soloba] ASR Djelia échouée : $e");
+    }
+
+    // 1) Space HF (production)
     try {
       print("[Soloba] Tentative ASR Space HF...");
       return await _recognizeAtUrl(_spaceUrl, audioBytes);
     } catch (e) {
       print("[Soloba] ASR Space échouée ou non configurée : $e");
-      
-      // Essayer le serveur local (Développement)
+
+      // 2) Serveur local (développement)
       try {
         print("[Soloba] Tentative ASR Locale...");
         return await _recognizeAtUrl(_localEndpoint, audioBytes);
       } catch (localErr) {
         print("[Soloba] ASR Locale échouée : $localErr");
-        
-        // Enfin, essayer l'Inference API (Dernier recours)
+
+        // 3) Inference API (dernier recours)
         try {
           print("[Soloba] Tentative ASR Inference API (Backup)...");
           return await _recognizeInferenceApi(audioBytes);
         } catch (infErr) {
           print("[Soloba] ASR Inference API échouée : $infErr");
-          throw Exception("Tous les services ASR sont indisponibles. Vérifiez votre connexion.");
+          throw Exception(
+            "Tous les services ASR sont indisponibles. Vérifiez votre connexion.",
+          );
         }
       }
     }
@@ -68,28 +99,35 @@ class SolobaService {
   // Pour les serveurs personnalisés (Space ou Local)
   Future<SolobaResult> _recognizeAtUrl(String url, List<int> audioBytes) async {
     var request = http.MultipartRequest('POST', Uri.parse(url));
-    request.files.add(http.MultipartFile.fromBytes(
-      'file',
-      audioBytes,
-      filename: 'audio.wav',
-    ));
-    
+    request.files.add(
+      http.MultipartFile.fromBytes('file', audioBytes, filename: 'audio.wav'),
+    );
+
     // Ajouter le token si disponible (nécessaire si le Space n'est pas public)
     if (_hfToken.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $_hfToken';
     }
 
-    print("[Soloba] Envoi de l'audio (${audioBytes.length} octets) vers $url...");
-    var streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+    print(
+      "[Soloba] Envoi de l'audio (${audioBytes.length} octets) vers $url...",
+    );
+    var streamedResponse = await request.send().timeout(
+      const Duration(seconds: 60),
+    );
     var response = await http.Response.fromStream(streamedResponse);
     print("[Soloba] Réponse reçue. Status: ${response.statusCode}");
 
     if (response.statusCode == 200) {
       dynamic data = json.decode(response.body);
-      String transcribedText = (data is List && data.isNotEmpty) ? (data[0]['text'] ?? "Inconnu") : (data['text'] ?? "Inconnu");
+      String transcribedText =
+          (data is List && data.isNotEmpty)
+              ? (data[0]['text'] ?? "Inconnu")
+              : (data['text'] ?? "Inconnu");
       return analyzeIntent(transcribedText);
     } else {
-      throw Exception("Serveur ASR ($url) Erreur: ${response.statusCode} - ${response.body}");
+      throw Exception(
+        "Serveur ASR ($url) Erreur: ${response.statusCode} - ${response.body}",
+      );
     }
   }
 
@@ -101,37 +139,51 @@ class SolobaService {
     }
 
     print("[Soloba] Envoi vers Inference API (${audioBytes.length} octets)...");
-    final response = await http.post(
-      Uri.parse(_hfInferenceUrl),
-      headers: headers,
-      body: audioBytes,
-    ).timeout(const Duration(seconds: 60));
+    final response = await http
+        .post(Uri.parse(_hfInferenceUrl), headers: headers, body: audioBytes)
+        .timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {
       dynamic data = json.decode(response.body);
-      String transcribedText = (data is List && data.isNotEmpty) ? (data[0]['text'] ?? "Inconnu") : (data['text'] ?? "Inconnu");
+      String transcribedText =
+          (data is List && data.isNotEmpty)
+              ? (data[0]['text'] ?? "Inconnu")
+              : (data['text'] ?? "Inconnu");
       return analyzeIntent(transcribedText);
     } else {
-      throw Exception("Inference API Erreur: ${response.statusCode} - ${response.body}");
+      throw Exception(
+        "Inference API Erreur: ${response.statusCode} - ${response.body}",
+      );
     }
   }
 
   SolobaResult analyzeIntent(String transcribedText) {
     // Normalisation du texte
-    final String input = transcribedText.toLowerCase()
-      .replaceAll('’', "'")
-      .replaceAll('?', "")
-      .replaceAll('!', "")
-      .replaceAll(',', " ");
+    final String input = transcribedText
+        .toLowerCase()
+        .replaceAll('’', "'")
+        .replaceAll('?', "")
+        .replaceAll('!', "")
+        .replaceAll(',', " ");
 
-    final List<String> words = input.split(' ').where((w) => w.length > 1).toList();
-    
+    final List<String> words =
+        input.split(' ').where((w) => w.length > 1).toList();
+
     // Mapping des intentions (Synonymes Bambara & Français)
     final Map<String, List<String>> mapping = {
       'versement': ['don', 'donli', 'ladi', 'versement', 'depot', 'se'],
       'retrait': ['bo', 'bɔ', 'bɔli', 'retrait', 'argent'],
       'virement': ['ci', 'cili', 'virement', 'transfert'],
-      'renseignement': ['ɲini', 'ɲɛfɔli', 'nyefoli', 'kalo', 'renseignement', 'info', 'hakɛ', 'niningali'],
+      'renseignement': [
+        'ɲini',
+        'ɲɛfɔli',
+        'nyefoli',
+        'kalo',
+        'renseignement',
+        'info',
+        'hakɛ',
+        'niningali',
+      ],
     };
 
     String bestId = "autre";
@@ -147,7 +199,7 @@ class SolobaService {
           score += (words.contains(keyword)) ? 1.0 : 0.5;
         }
       }
-      
+
       if (score > bestScore) {
         bestScore = score;
         bestId = serviceId;
@@ -165,7 +217,7 @@ class SolobaService {
       text: bestLabel,
       bambara: transcribedText,
       serviceId: bestId,
-      confidence: bestScore > 1.0 ? 1.0 : bestScore, 
+      confidence: bestScore > 1.0 ? 1.0 : bestScore,
       model: modelName,
       version: modelVersion,
     );
@@ -173,11 +225,16 @@ class SolobaService {
 
   String getServiceLabel(String id) {
     switch (id) {
-      case 'versement': return "Versement";
-      case 'retrait': return "Retrait";
-      case 'virement': return "Virement";
-      case 'renseignement': return "Renseignement";
-      default: return "Service Client";
+      case 'versement':
+        return "Versement";
+      case 'retrait':
+        return "Retrait";
+      case 'virement':
+        return "Virement";
+      case 'renseignement':
+        return "Renseignement";
+      default:
+        return "Service Client";
     }
   }
 }

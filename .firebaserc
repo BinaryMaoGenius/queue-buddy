@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "your-project-dev-id",
+    "dev": "your-project-dev-id",
+    "prod": "your-project-prod-id"
+  }
+}
