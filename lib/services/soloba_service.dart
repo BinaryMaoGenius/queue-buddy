@@ -168,7 +168,7 @@ class SolobaService {
       try {
         print("[Soloba] Tentative de compréhension sémantique via l'IA...");
         final aiResult = await _analyzeIntentWithAI(transcribedText).timeout(
-          const Duration(seconds: 4),
+          const Duration(seconds: 10),
         );
         if (aiResult.confidence > 0.6) {
           print(
@@ -228,19 +228,23 @@ class SolobaService {
     }
   }
 
-  SolobaResult _analyzeIntentWithKeywords(String transcribedText) {
-    // Normalisation du texte (plus agressive)
-    final String input = transcribedText
+  String _normalize(String text) {
+    return text
         .toLowerCase()
         .replaceAll('’', "'")
         .replaceAll('?', "")
         .replaceAll('!', "")
         .replaceAll('.', "")
         .replaceAll(',', " ")
-        .replaceAll('ɔ', "o") // Tolérance orthographe Bambara
+        .replaceAll('ɔ', "o")
         .replaceAll('ɛ', "e")
         .replaceAll('ɲ', "ny")
+        .replaceAll('ŋ', "n")
         .trim();
+  }
+
+  SolobaResult _analyzeIntentWithKeywords(String transcribedText) {
+    final String input = _normalize(transcribedText);
 
     final List<String> words =
         input.split(' ').where((w) => w.length > 1).toList();
@@ -320,14 +324,15 @@ class SolobaService {
     mapping.forEach((serviceId, keywords) {
       double score = 0;
       for (final keyword in keywords) {
-        if (input.contains(keyword)) {
+        final normK = _normalize(keyword);
+        if (input.contains(normK)) {
           // Les expressions multi-mots (ex: "wari don") valent plus
-          bool isMultiWord = keyword.contains(' ');
+          bool isMultiWord = normK.contains(' ');
           if (isMultiWord) {
             score += 1.5;
           } else {
             // Plus de poids si le mot exact est présent isolément
-            score += (words.contains(keyword)) ? 1.0 : 0.5;
+            score += (words.contains(normK)) ? 1.0 : 0.5;
           }
         }
       }
