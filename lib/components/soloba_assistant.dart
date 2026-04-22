@@ -80,7 +80,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
           });
 
           // Voice Feedback
-          _speakConfirmation(result.bambara, result.text);
+          _speakConfirmation(result.labelBambara, result.text);
         } else {
           throw Exception(AppStrings.audioError);
         }
@@ -206,7 +206,8 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
     try {
       await _speechService.speakText(
         text: "$bambara. $french choisi.",
-        description: "Moussa speaks with a clear and friendly tone",
+        description:
+            "Sira speaks with a clear, professional and friendly female voice in Bambara",
       );
     } catch (e) {
       debugPrint("[SolobaAssistant] Djelia TTS fallback: $e");
@@ -616,9 +617,9 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                       curve: Curves.easeOutBack,
                     ),
                     const SizedBox(height: 32),
-                    const Text(
-                      AppStrings.aiUnderstood,
-                      style: TextStyle(
+                    Text(
+                      "${AppStrings.aiUnderstood} (${resultBambara != resultText ? 'DJELIA + AI' : 'KEYWORD'})",
+                      style: const TextStyle(
                         fontSize: 10,
                         color: AppColors.mutedForeground,
                         fontWeight: FontWeight.w900,

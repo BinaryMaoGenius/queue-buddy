@@ -7,6 +7,7 @@ import 'djelia_speech_service.dart';
 class SolobaResult {
   final String text;
   final String bambara;
+  final String labelBambara; // Nouveau : Label court en Bambara
   final String serviceId;
   final double confidence;
   final String model;
@@ -15,6 +16,7 @@ class SolobaResult {
   SolobaResult({
     required this.text,
     required this.bambara,
+    required this.labelBambara,
     required this.serviceId,
     required this.confidence,
     required this.model,
@@ -215,6 +217,7 @@ class SolobaService {
       return SolobaResult(
         text: getServiceLabel(serviceId),
         bambara: text,
+        labelBambara: getServiceLabelBambara(serviceId),
         serviceId: serviceId,
         confidence: confidence,
         model: "NLU-mDeBERTa",
@@ -245,7 +248,7 @@ class SolobaService {
     print("[Soloba Debug] Transcription reçue: \"$transcribedText\"");
     print("[Soloba Debug] Texte normalisé: \"$input\"");
 
-    // Mapping des intentions (Bibliothèque élargie)
+    // Mapping des intentions (Bibliothèque élargie Bambara & Français)
     final Map<String, List<String>> mapping = {
       'versement': [
         'don',
@@ -258,6 +261,10 @@ class SolobaService {
         'doli',
         'se',
         'remplir',
+        'verse',
+        'déposer',
+        'mettre',
+        'ajout',
       ],
       'retrait': [
         'bo',
@@ -268,6 +275,9 @@ class SolobaService {
         'wari bɔ',
         'retrait',
         'argent',
+        'enlever',
+        'retirer',
+        'sortir',
       ],
       'virement': [
         'ci',
@@ -277,6 +287,8 @@ class SolobaService {
         'transfert',
         'envoi',
         'envoyer',
+        'transférer',
+        'envoyé',
       ],
       'renseignement': [
         'ɲini',
@@ -293,6 +305,10 @@ class SolobaService {
         'hakɛ',
         'niningali',
         'question',
+        'information',
+        'connaître',
+        'demander',
+        'savoir',
       ],
     };
 
@@ -327,8 +343,8 @@ class SolobaService {
       }
     });
 
-    // Seuil de confiance minimal (ajustable)
-    if (bestScore < 0.5) {
+    // Seuil de confiance minimal (abaissé pour plus de tolérance)
+    if (bestScore < 0.4) {
       bestId = "autre";
       bestLabel = "Service Client";
     }
@@ -336,6 +352,7 @@ class SolobaService {
     return SolobaResult(
       text: bestLabel,
       bambara: transcribedText,
+      labelBambara: getServiceLabelBambara(bestId),
       serviceId: bestId,
       confidence: bestScore > 1.0 ? 1.0 : bestScore,
       model: modelName,
@@ -355,6 +372,21 @@ class SolobaService {
         return "Renseignement";
       default:
         return "Service Client";
+    }
+  }
+
+  String getServiceLabelBambara(String id) {
+    switch (id) {
+      case 'versement':
+        return "Wari don";
+      case 'retrait':
+        return "Wari bɔ";
+      case 'virement':
+        return "Wari ci";
+      case 'renseignement':
+        return "Ɲɛfɔli";
+      default:
+        return "Baarakɛla";
     }
   }
 }

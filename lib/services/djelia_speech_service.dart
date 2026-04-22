@@ -5,6 +5,10 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io' show File, Directory;
+import 'package:path/path.dart' as p;
+import 'package:crypto/crypto.dart' as crypto;
 
 /// Djelia speech integration for:
 /// - ASR (transcription)
@@ -125,6 +129,24 @@ class DjeliaSpeechService {
     bool useCache = true,
     bool joinPending = true,
   }) async {
+    final cacheKey = _getCacheKey(text, useV2, description, speaker, format);
+
+    if (useCache) {
+      // 1. Check memory cache
+      if (_ttsCache.containsKey(cacheKey)) {
+        return _ttsCache[cacheKey]!.bytes;
+      }
+
+      // 2. Check disk cache (except on Web)
+      if (!kIsWeb) {
+        final diskBytes = await _getFromDiskCache(cacheKey);
+        if (diskBytes != null) {
+          _ttsCache[cacheKey] = _SynthesisResult(diskBytes, format);
+          return diskBytes;
+        }
+      }
+    }
+
     final result = await _synthesizeWithMetadata(
       text: text,
       useV2: useV2,
@@ -148,28 +170,16 @@ class DjeliaSpeechService {
   }) async {
     _ensureConfigured();
 
-    final cacheKey = _buildTtsCacheKey(
-      text: text,
-      useV2: useV2,
-      description: description,
-      format: format,
-      speaker: speaker,
-    );
+    final cacheKey = _getCacheKey(text, useV2, description, speaker, format);
 
     if (useCache) {
       final cached = _ttsCache[cacheKey];
       if (cached != null) {
-        _log(
-          'TTS cache hit | requestedFormat=$format | resolvedFormat=${cached.format} | textLen=${text.length} | keyHash=${cacheKey.hashCode}',
-        );
         return cached;
       }
 
       final pendingRequest = _pendingTts[cacheKey];
       if (joinPending && pendingRequest != null) {
-        _log(
-          'TTS join pending request | requestedFormat=$format | textLen=${text.length} | keyHash=${cacheKey.hashCode}',
-        );
         return pendingRequest;
       }
     }
@@ -190,7 +200,13 @@ class DjeliaSpeechService {
 
     try {
       final result = await requestFuture;
-      _saveToTtsCache(cacheKey, result);
+      _ttsCache[cacheKey] = result;
+      if (_ttsCache.length > _maxCachedTtsItems) {
+        _ttsCache.remove(_ttsCache.keys.first);
+      }
+      if (!kIsWeb) {
+        _saveToDiskCache(cacheKey, result.bytes);
+      }
       return result;
     } finally {
       _pendingTts.remove(cacheKey);
@@ -244,13 +260,7 @@ class DjeliaSpeechService {
     String format = 'mp3',
     int speaker = 1,
   }) {
-    final cacheKey = _buildTtsCacheKey(
-      text: text,
-      useV2: useV2,
-      description: description,
-      format: format,
-      speaker: speaker,
-    );
+    final cacheKey = _getCacheKey(text, useV2, description, speaker, format);
     return _ttsCache.containsKey(cacheKey);
   }
 
@@ -504,21 +514,42 @@ class DjeliaSpeechService {
     }
   }
 
-  String _buildTtsCacheKey({
-    required String text,
-    required bool useV2,
-    required String description,
-    required String format,
-    required int speaker,
-  }) {
-    return '${useV2 ? 'v2' : 'v1'}|$format|$speaker|$description|$text';
+  String _getCacheKey(
+    String text,
+    bool v2,
+    String desc,
+    int speaker,
+    String format,
+  ) {
+    final raw = "$text|$v2|$desc|$speaker|$format";
+    return crypto.md5.convert(utf8.encode(raw)).toString();
   }
 
-  void _saveToTtsCache(String key, _SynthesisResult result) {
-    if (_ttsCache.length >= _maxCachedTtsItems) {
-      _ttsCache.remove(_ttsCache.keys.first);
+  Future<Uint8List?> _getFromDiskCache(String key) async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File(p.join(dir.path, 'tts_cache', '$key.bin'));
+      if (await file.exists()) {
+        return await file.readAsBytes();
+      }
+    } catch (e) {
+      debugPrint("[Djelia] Disk cache read error: $e");
     }
-    _ttsCache[key] = result;
+    return null;
+  }
+
+  Future<void> _saveToDiskCache(String key, Uint8List bytes) async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final cacheDir = Directory(p.join(dir.path, 'tts_cache'));
+      if (!await cacheDir.exists()) {
+        await cacheDir.create(recursive: true);
+      }
+      final file = File(p.join(cacheDir.path, '$key.bin'));
+      await file.writeAsBytes(bytes);
+    } catch (e) {
+      debugPrint("[Djelia] Disk cache save error: $e");
+    }
   }
 
   Future<void> stopSpeaking() async {
