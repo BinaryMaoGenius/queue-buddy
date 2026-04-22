@@ -1,9 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
 import '../services/firebase_service.dart';
 import '../constants/app_colors.dart';
 import '../utils/responsive_utils.dart';
+import '../services/voice_guide_controller.dart';
+import '../components/voice_guide_debug_chip.dart';
+import '../services/djelia_speech_service.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final String agenceId;
@@ -13,8 +17,15 @@ class AnalyticsPage extends StatefulWidget {
   State<AnalyticsPage> createState() => _AnalyticsPageState();
 }
 
-class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProviderStateMixin {
+class _AnalyticsPageState extends State<AnalyticsPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _bgAnimController;
+  final VoiceGuideController _voiceGuide = VoiceGuideController();
+  final DjeliaSpeechService _speechService = DjeliaSpeechService();
+  bool _voiceGuidePlayed = false;
+
+  static const String _analyticsVoiceGuideBm =
+      "Nin ye agence lajɛli yoro ye. Yan i bɛ se ka kibaruw lajɛ, i bɛ se ka donniw ani bɔliw hakɛ lajɛ k'a faamu.";
 
   @override
   void initState() {
@@ -23,6 +34,31 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
       vsync: this,
       duration: const Duration(seconds: 15),
     )..repeat(reverse: true);
+
+    _playVoiceGuide();
+  }
+
+  Future<void> _playVoiceGuide() async {
+    if (_voiceGuidePlayed) return;
+    _voiceGuidePlayed = true;
+
+    final result = await _voiceGuide.requestForScreen(
+      screenId: 'analytics',
+      text: _analyticsVoiceGuideBm,
+      priority: VoiceGuidePriority.critical,
+      immediate: true,
+      minReplayInterval: const Duration(seconds: 10),
+    );
+
+    if (!result.isPlayed) {
+      debugPrint("[AnalyticsPage] Voice guide skipped: ${result.reason}");
+    }
+  }
+
+  void _onSpeechResult(VoiceGuideResult result) {
+    if (!result.isPlayed) {
+      debugPrint("[AnalyticsPage] Voice replay skipped: ${result.reason}");
+    }
   }
 
   @override
@@ -34,7 +70,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     Responsive.init(context);
-    final FirebaseService firebaseService = FirebaseService();
+    final FirebaseService firebaseService = context.read<FirebaseService>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -42,10 +78,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
         stream: firebaseService.getAnalyticsStream(widget.agenceId),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
           }
           final stats = snapshot.data!;
-          
+
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -56,11 +94,23 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: VoiceGuideDebugChip.live(
+                          scope: 'screen:analytics',
+                          controller: _voiceGuide,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       _buildSummaryGrid(stats),
                       const SizedBox(height: 32),
-                      _buildChartSection(stats['volumeByHour'] as Map<int, int>),
+                      _buildChartSection(
+                        stats['volumeByHour'] as Map<int, int>,
+                      ),
                       const SizedBox(height: 32),
-                      _buildWaitTimeSection((stats['avgWait'] as num).toDouble()),
+                      _buildWaitTimeSection(
+                        (stats['avgWait'] as num).toDouble(),
+                      ),
                       const SizedBox(height: 48),
                       Center(
                         child: Text(
@@ -80,7 +130,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
@@ -94,9 +144,32 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
       leading: const BackButton(color: Colors.white),
       title: const Text(
         "RAPPORTS D'ACTIVITÉ",
-        style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 14, color: Colors.white),
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2,
+          fontSize: 14,
+          color: Colors.white,
+        ),
       ),
       centerTitle: true,
+      actions: [
+        IconButton(
+          tooltip: "Lire l'aide vocale",
+          onPressed: () async {
+            try {
+              await _speechService.speakText(
+                text: _analyticsVoiceGuideBm,
+                description:
+                    "Moussa speaks with a very clear voice and friendly tone",
+                format: "mp3",
+              );
+            } catch (e) {
+              debugPrint("[AnalyticsPage] Direct TTS failed: $e");
+            }
+          },
+          icon: const Icon(Icons.volume_up_rounded, color: Colors.white),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -109,7 +182,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: const [AppColors.primary, AppColors.primaryVibrant, Color(0xFF032F23)],
+                      colors: const [
+                        AppColors.primary,
+                        AppColors.primaryVibrant,
+                        Color(0xFF032F23),
+                      ],
                       stops: [0.0, _bgAnimController.value, 1.0],
                     ),
                   ),
@@ -124,11 +201,21 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
                 children: [
                   Text(
                     "PERFORMANCE",
-                    style: TextStyle(color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 2,
+                    ),
                   ),
                   const Text(
                     "Statistiques Agence",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 28, letterSpacing: -0.5),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 28,
+                      letterSpacing: -0.5,
+                    ),
                   ),
                 ],
               ),
@@ -179,7 +266,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10)),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
             ],
           ),
           child: BarChart(
@@ -187,9 +278,15 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
               barGroups: _generateGroups(data),
               gridData: const FlGridData(show: false),
               titlesData: FlTitlesData(
-                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
@@ -197,7 +294,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
                       if (value % 2 == 0 && value >= 8 && value <= 18) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0),
-                          child: Text("${value.toInt()}h", style: TextStyle(fontSize: 10, color: AppColors.mutedForeground.withOpacity(0.8), fontWeight: FontWeight.bold)),
+                          child: Text(
+                            "${value.toInt()}h",
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.mutedForeground.withOpacity(0.8),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         );
                       }
                       return const SizedBox.shrink();
@@ -212,7 +316,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
                     return BarTooltipItem(
                       "${rod.toY.toInt()} clients",
-                      const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     );
                   },
                 ),
@@ -233,7 +341,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
         barRods: [
           BarChartRodData(
             toY: val,
-            color: h == DateTime.now().hour ? AppColors.accent : AppColors.primary,
+            color:
+                h == DateTime.now().hour ? AppColors.accent : AppColors.primary,
             width: 14,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
             backDrawRodData: BackgroundBarChartRodData(
@@ -255,12 +364,21 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(32),
         image: DecorationImage(
-          image: const NetworkImage("https://www.transparenttextures.com/patterns/cubes.png"),
+          image: const NetworkImage(
+            "https://www.transparenttextures.com/patterns/cubes.png",
+          ),
           opacity: 0.05,
-          colorFilter: ColorFilter.mode(Colors.white.withOpacity(0.1), BlendMode.srcIn),
+          colorFilter: ColorFilter.mode(
+            Colors.white.withOpacity(0.1),
+            BlendMode.srcIn,
+          ),
         ),
         boxShadow: [
-          BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 25, offset: const Offset(0, 15)),
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 25,
+            offset: const Offset(0, 15),
+          ),
         ],
       ),
       child: Column(
@@ -272,9 +390,24 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("TEMPS D'ATTENTE MOYEN", style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  Text(
+                    "TEMPS D'ATTENTE MOYEN",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  const Text("Efficacité du Service", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                  const Text(
+                    "Efficacité du Service",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
               ),
               const Icon(Icons.timer_outlined, color: Colors.white, size: 30),
@@ -286,17 +419,42 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
             children: [
               Text(
                 "${avgMinutes.toInt()}",
-                style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, height: 1),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 56,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
               ),
               const Padding(
                 padding: EdgeInsets.only(bottom: 8, left: 8),
-                child: Text("minutes", style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.w600)),
+                child: Text(
+                  "minutes",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                child: const Text("Optimal", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "Optimal",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ],
           ),
@@ -309,8 +467,23 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primary, letterSpacing: -0.5)),
-        Text(subtitle, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mutedForeground.withOpacity(0.7))),
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            color: AppColors.primary,
+            letterSpacing: -0.5,
+          ),
+        ),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.mutedForeground.withOpacity(0.7),
+          ),
+        ),
       ],
     );
   }
@@ -323,7 +496,13 @@ class _StatCardPro extends StatelessWidget {
   final Color color;
   final String trend;
 
-  const _StatCardPro({required this.title, required this.value, required this.icon, required this.color, required this.trend});
+  const _StatCardPro({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.trend,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +512,11 @@ class _StatCardPro extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Column(
@@ -344,19 +527,44 @@ class _StatCardPro extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              Text(trend, style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w900)),
+              Text(
+                trend,
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
           const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.primary, height: 1.1)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+              height: 1.1,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.mutedForeground.withOpacity(0.8), letterSpacing: -0.2)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mutedForeground.withOpacity(0.8),
+              letterSpacing: -0.2,
+            ),
+          ),
         ],
       ),
     );
   }
 }
-

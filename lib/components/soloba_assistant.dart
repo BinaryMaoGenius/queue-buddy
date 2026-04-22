@@ -10,7 +10,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/soloba_service.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import '../services/djelia_speech_service.dart';
 
 class SolobaAssistant extends StatefulWidget {
   final Function(String) onSelectService;
@@ -24,8 +24,8 @@ class SolobaAssistant extends StatefulWidget {
 class _SolobaAssistantState extends State<SolobaAssistant> {
   final SolobaService _solobaService = SolobaService();
   final AudioRecorder _record = AudioRecorder();
-  final FlutterTts _flutterTts = FlutterTts();
-  
+  final DjeliaSpeechService _speechService = DjeliaSpeechService();
+
   bool isListening = false;
   bool isProcessing = false;
   bool showConfirmation = false;
@@ -37,25 +37,18 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
   @override
   void initState() {
     super.initState();
-    _initTts();
-  }
-
-  Future<void> _initTts() async {
-    await _flutterTts.setLanguage("fr-FR");
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
   }
 
   @override
   void dispose() {
     _record.dispose();
-    _flutterTts.stop();
+    _speechService.dispose();
     super.dispose();
   }
 
   void toggleListening() async {
     HapticFeedback.mediumImpact();
-    
+
     if (isListening) {
       // STOP recording
       setState(() {
@@ -74,7 +67,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
             // Sur Windows/Mobile, on utilise XFile qui est plus sûr que dart:io pour le web-compat
             audioBytes = await XFile(path).readAsBytes();
           }
-          
+
           final result = await _solobaService.recognizeSpeech(audioBytes);
           if (!mounted) return;
           HapticFeedback.heavyImpact();
@@ -85,7 +78,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
             resultText = result.text;
             serviceId = result.serviceId;
           });
-          
+
           // Voice Feedback
           _speakConfirmation(result.bambara, result.text);
         } else {
@@ -103,7 +96,10 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
     } else {
       // START recording
       if (await _record.hasPermission()) {
-        await _record.start(const RecordConfig(encoder: AudioEncoder.wav), path: '');
+        await _record.start(
+          const RecordConfig(encoder: AudioEncoder.wav),
+          path: '',
+        );
         setState(() {
           isListening = true;
           showConfirmation = false;
@@ -121,55 +117,74 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.statusWarn.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.mic_off_rounded, color: AppColors.statusWarn, size: 32),
+      builder:
+          (ctx) => Container(
+            padding: const EdgeInsets.all(32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              "Assistant vocal indisponible",
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.statusWarn.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.mic_off_rounded,
+                    color: AppColors.statusWarn,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Assistant vocal indisponible",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.asrUnavailable,
+                  style: const TextStyle(
+                    color: AppColors.mutedForeground,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    setState(() => showDemoMenu = true);
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text(
+                    AppStrings.tryDemoVoice,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    "Fermer",
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              AppStrings.asrUnavailable,
-              style: const TextStyle(color: AppColors.mutedForeground, fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(ctx);
-                setState(() => showDemoMenu = true);
-              },
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text(AppStrings.tryDemoVoice, style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Fermer", style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -182,13 +197,20 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
       resultText = text;
       serviceId = id;
     });
-    
+
     // Voice Feedback for Demo
     _speakConfirmation(bambara, text);
   }
 
   Future<void> _speakConfirmation(String bambara, String french) async {
-    await _flutterTts.speak("$bambara . $french choisi.");
+    try {
+      await _speechService.speakText(
+        text: "$bambara. $french choisi.",
+        description: "Moussa speaks with a clear and friendly tone",
+      );
+    } catch (e) {
+      debugPrint("[SolobaAssistant] Djelia TTS fallback: $e");
+    }
   }
 
   void cancel() {
@@ -239,10 +261,23 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 icon: const Icon(Icons.mic_rounded),
-                label: const Text(AppStrings.assistantBtn, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                label: const Text(
+                  AppStrings.assistantBtn,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(32),
+                ),
               ),
-            ).animate().scale(delay: 200.ms, duration: 400.ms, curve: Curves.easeOutBack),
+            ).animate().scale(
+              delay: 200.ms,
+              duration: 400.ms,
+              curve: Curves.easeOutBack,
+            ),
           ),
 
         // Demo Service Selection Menu
@@ -256,7 +291,10 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
               blur: 15,
               opacity: 0.95,
               color: Colors.white,
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 1.5),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -273,12 +311,21 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                                 color: AppColors.accent.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.auto_awesome_rounded, color: AppColors.accent, size: 18),
+                              child: const Icon(
+                                Icons.auto_awesome_rounded,
+                                color: AppColors.accent,
+                                size: 18,
+                              ),
                             ),
                             const SizedBox(width: 10),
                             const Text(
                               AppStrings.demoMode,
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2, color: AppColors.accent),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                                letterSpacing: 2,
+                                color: AppColors.accent,
+                              ),
                             ),
                           ],
                         ),
@@ -291,7 +338,11 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                     const SizedBox(height: 8),
                     const Text(
                       "Sélectionnez un service comme si Sira vous avait compris",
-                      style: TextStyle(color: AppColors.mutedForeground, fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: AppColors.mutedForeground,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
@@ -299,34 +350,58 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                       icon: Icons.arrow_downward_rounded,
                       bambara: "Wari don",
                       label: "Versement",
-                      onTap: () => _selectDemoService('versement', 'Wari don', 'Versement'),
+                      onTap:
+                          () => _selectDemoService(
+                            'versement',
+                            'Wari don',
+                            'Versement',
+                          ),
                     ),
                     const SizedBox(height: 8),
                     _DemoServiceButton(
                       icon: Icons.account_balance_wallet_outlined,
                       bambara: "Wari bɔ",
                       label: "Retrait",
-                      onTap: () => _selectDemoService('retrait', 'Wari bɔ', 'Retrait'),
+                      onTap:
+                          () => _selectDemoService(
+                            'retrait',
+                            'Wari bɔ',
+                            'Retrait',
+                          ),
                     ),
                     const SizedBox(height: 8),
                     _DemoServiceButton(
                       icon: Icons.swap_horiz_rounded,
                       bambara: "Wari ci",
                       label: "Virement",
-                      onTap: () => _selectDemoService('virement', 'Wari ci', 'Virement'),
+                      onTap:
+                          () => _selectDemoService(
+                            'virement',
+                            'Wari ci',
+                            'Virement',
+                          ),
                     ),
                     const SizedBox(height: 8),
                     _DemoServiceButton(
                       icon: Icons.info_outline_rounded,
                       bambara: "Ɲɛfɔli",
                       label: "Renseignement",
-                      onTap: () => _selectDemoService('renseignement', 'Ɲɛfɔli', 'Renseignement'),
+                      onTap:
+                          () => _selectDemoService(
+                            'renseignement',
+                            'Ɲɛfɔli',
+                            'Renseignement',
+                          ),
                     ),
                   ],
                 ),
               ),
             ),
-          ).animate().slideY(begin: 0.4, duration: 500.ms, curve: Curves.easeOutQuart),
+          ).animate().slideY(
+            begin: 0.4,
+            duration: 500.ms,
+            curve: Curves.easeOutQuart,
+          ),
 
         // Listening Overlay
         if (isListening || isProcessing)
@@ -342,60 +417,105 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                   if (isProcessing)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 60),
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     )
                   else
                     // Dynamic Mic Pulse
                     Container(
-                      width: 160,
-                      height: 160,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 90,
-                          height: 90,
+                          width: 160,
+                          height: 160,
                           decoration: BoxDecoration(
-                            gradient: AppColors.premiumGradient,
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 30, offset: const Offset(0, 15)),
-                            ],
                           ),
-                          child: const Icon(Icons.mic_rounded, size: 45, color: Colors.white),
+                          child: Center(
+                            child: Container(
+                              width: 90,
+                              height: 90,
+                              decoration: BoxDecoration(
+                                gradient: AppColors.premiumGradient,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                    blurRadius: 30,
+                                    offset: const Offset(0, 15),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.mic_rounded,
+                                size: 45,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        )
+                        .animate(
+                          onPlay:
+                              (controller) => controller.repeat(reverse: true),
+                        )
+                        .scale(
+                          begin: const Offset(1, 1),
+                          end: const Offset(1.2, 1.2),
+                          duration: 800.ms,
+                          curve: Curves.easeInOut,
                         ),
-                      ),
-                    ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-                     .scale(begin: const Offset(1, 1), end: const Offset(1.2, 1.2), duration: 800.ms, curve: Curves.easeInOut),
-                  
+
                   const SizedBox(height: 64),
                   Text(
-                    isProcessing ? AppStrings.analyzing : AppStrings.solobaListeningBambara, 
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 24, fontWeight: FontWeight.w900),
+                    isProcessing
+                        ? AppStrings.analyzing
+                        : AppStrings.solobaListeningBambara,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
                     textAlign: TextAlign.center,
                   ).animate().fadeIn().slideY(begin: 0.1),
                   const SizedBox(height: 12),
                   Text(
-                    isProcessing ? AppStrings.pleaseWait : AppStrings.solobaListeningDesc, 
-                    style: const TextStyle(color: AppColors.mutedForeground, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                    isProcessing
+                        ? AppStrings.pleaseWait
+                        : AppStrings.solobaListeningDesc,
+                    style: const TextStyle(
+                      color: AppColors.mutedForeground,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
                   ).animate().fadeIn(delay: 200.ms),
-                  
+
                   const SizedBox(height: 80),
                   if (isListening)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(10, (index) => Container(
-                        width: 4,
-                        height: 40,
-                        margin: const EdgeInsets.symmetric(horizontal: 5),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.premiumGradient,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-                       .scaleY(begin: 0.2, end: 2.5, delay: (index * 100).ms, duration: 600.ms)),
+                      children: List.generate(
+                        10,
+                        (index) => Container(
+                              width: 4,
+                              height: 40,
+                              margin: const EdgeInsets.symmetric(horizontal: 5),
+                              decoration: BoxDecoration(
+                                gradient: AppColors.premiumGradient,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            )
+                            .animate(
+                              onPlay:
+                                  (controller) =>
+                                      controller.repeat(reverse: true),
+                            )
+                            .scaleY(
+                              begin: 0.2,
+                              end: 2.5,
+                              delay: (index * 100).ms,
+                              duration: 600.ms,
+                            ),
+                      ),
                     ),
 
                   if (isListening)
@@ -404,12 +524,23 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                       child: TextButton.icon(
                         onPressed: toggleListening,
                         icon: const Icon(Icons.stop_rounded),
-                        label: const Text(AppStrings.stop, style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+                        label: const Text(
+                          AppStrings.stop,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                          ),
+                        ),
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 20,
+                          ),
                           backgroundColor: AppColors.statusWarn,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
                         ),
                       ).animate().scale(curve: Curves.easeOutBack),
                     )
@@ -422,12 +553,25 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                       child: TextButton.icon(
                         onPressed: cancel,
                         icon: const Icon(Icons.close_rounded),
-                        label: const Text(AppStrings.cancel, style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+                        label: const Text(
+                          AppStrings.cancel,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                          ),
+                        ),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.foreground,
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                          backgroundColor: AppColors.secondary.withValues(alpha: 0.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 20,
+                          ),
+                          backgroundColor: AppColors.secondary.withValues(
+                            alpha: 0.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
                         ),
                       ),
                     ),
@@ -447,7 +591,10 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
               blur: 15,
               opacity: 0.95,
               color: Colors.white,
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 1.5),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(40),
                 child: Column(
@@ -459,20 +606,34 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                         color: AppColors.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 36),
-                    ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        color: AppColors.primary,
+                        size: 36,
+                      ),
+                    ).animate().scale(
+                      duration: 400.ms,
+                      curve: Curves.easeOutBack,
+                    ),
                     const SizedBox(height: 32),
                     const Text(
-                      AppStrings.aiUnderstood, 
-                      style: TextStyle(fontSize: 10, color: AppColors.mutedForeground, fontWeight: FontWeight.w900, letterSpacing: 2),
+                      AppStrings.aiUnderstood,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.mutedForeground,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Column(
                       children: [
                         Text(
-                          resultBambara!, 
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.primary, 
+                          resultBambara!,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium?.copyWith(
+                            color: AppColors.primary,
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1,
@@ -480,8 +641,13 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "\u201C $resultText \u201D", 
-                          style: const TextStyle(fontSize: 18, color: AppColors.mutedForeground, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic),
+                          "\u201C $resultText \u201D",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: AppColors.mutedForeground,
+                            fontWeight: FontWeight.w600,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
                       ],
                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
@@ -493,11 +659,22 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                             onPressed: cancel,
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(64),
-                              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2), width: 1.5),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                              side: BorderSide(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
                               foregroundColor: AppColors.mutedForeground,
                             ),
-                            child: const Text(AppStrings.retry, style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                            child: const Text(
+                              AppStrings.retry,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -506,10 +683,18 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                             onPressed: confirm,
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(64),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
                               elevation: 0,
                             ),
-                            child: const Text(AppStrings.continueBtn, style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                            child: const Text(
+                              AppStrings.continueBtn,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -518,7 +703,11 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                 ),
               ),
             ),
-          ).animate().slideY(begin: 0.6, duration: 600.ms, curve: Curves.easeOutQuart),
+          ).animate().slideY(
+            begin: 0.6,
+            duration: 600.ms,
+            curve: Curves.easeOutQuart,
+          ),
       ],
     );
   }
@@ -564,12 +753,29 @@ class _DemoServiceButton extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  Text(bambara, style: const TextStyle(fontSize: 11, color: AppColors.mutedForeground, fontWeight: FontWeight.w600)),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    bambara,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.mutedForeground,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.mutedForeground.withValues(alpha: 0.5)),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: AppColors.mutedForeground.withValues(alpha: 0.5),
+            ),
           ],
         ),
       ),
