@@ -48,7 +48,8 @@ echo "--- 🏗️ Construction de l'application Web (Mode Verbeux) ---"
 flutter build web --release -v \
   --no-tree-shake-icons \
   --dart-define=HF_TOKEN=$HF_TOKEN \
-  --dart-define=ASR_SPACE_URL=$ASR_SPACE_URL
+  --dart-define=ASR_SPACE_URL=$ASR_SPACE_URL \
+  --dart-define=DJELIA_API_KEY=$DJELIA_API_KEY
 
 echo "--- 📂 Vérification du dossier de sortie ---"
 ls -lah build/web

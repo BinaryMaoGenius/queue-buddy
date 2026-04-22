@@ -34,10 +34,11 @@ class SolobaService {
   );
 
   // 3. ENDPOINT INFERENCE API (Backup gratuit si le Space est éteint)
-  static const String _hfInferenceUrl =
-      'https://api-inference.huggingface.co/models/RobotsMali/soloni-114m-tdt-ctc-v3';
-
   static const String _hfToken = String.fromEnvironment('HF_TOKEN');
+
+  // Modèle NLU pour la compréhension sémantique (Multilingue)
+  static const String _hfNluUrl =
+      'https://api-inference.huggingface.co/models/MoritzLaurer/mDeBERTa-v3-base-mnli-xnli';
 
   final DjeliaSpeechService _djelia = DjeliaSpeechService();
 
@@ -54,11 +55,11 @@ class SolobaService {
         print("[Soloba] Tentative ASR Djelia v2...");
         final text = await _djelia.transcribe(
           Uint8List.fromList(audioBytes),
-          translateToFrench: false,
+          translateToFrench: true, // On récupère le français pour mieux comprendre l'action
           useV2: true,
         );
         if (text.trim().isNotEmpty) {
-          return analyzeIntent(text);
+          return await analyzeIntent(text);
         }
         throw Exception("Transcription Djelia vide");
       } else {
@@ -131,16 +132,18 @@ class SolobaService {
     }
   }
 
-  // Pour l'Inference API de Hugging Face (requiert un body binaire)
   Future<SolobaResult> _recognizeInferenceApi(List<int> audioBytes) async {
     final headers = {'Content-Type': 'application/octet-stream'};
     if (_hfToken.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_hfToken';
     }
 
+    final inferenceUrl =
+        'https://api-inference.huggingface.co/models/RobotsMali/soloni-114m-tdt-ctc-v3';
+
     print("[Soloba] Envoi vers Inference API (${audioBytes.length} octets)...");
     final response = await http
-        .post(Uri.parse(_hfInferenceUrl), headers: headers, body: audioBytes)
+        .post(Uri.parse(inferenceUrl), headers: headers, body: audioBytes)
         .timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {
@@ -157,32 +160,139 @@ class SolobaService {
     }
   }
 
-  SolobaResult analyzeIntent(String transcribedText) {
-    // Normalisation du texte
+  Future<SolobaResult> analyzeIntent(String transcribedText) async {
+    // 1. Tenter la compréhension sémantique via l'IA (Multilingue)
+    if (_hfToken.isNotEmpty) {
+      try {
+        print("[Soloba] Tentative de compréhension sémantique via l'IA...");
+        final aiResult = await _analyzeIntentWithAI(transcribedText).timeout(
+          const Duration(seconds: 4),
+        );
+        if (aiResult.confidence > 0.6) {
+          print(
+            "[Soloba] AI Success: ${aiResult.serviceId} (conf: ${aiResult.confidence})",
+          );
+          return aiResult;
+        }
+        print("[Soloba] IA incertaine (conf: ${aiResult.confidence}), fallback.");
+      } catch (e) {
+        print("[Soloba] Échec IA NLU : $e. Fallback sur les mots-clés.");
+      }
+    }
+
+    // 2. Fallback sur le dictionnaire de mots-clés enrichi (votre "bibliothèque")
+    return _analyzeIntentWithKeywords(transcribedText);
+  }
+
+  Future<SolobaResult> _analyzeIntentWithAI(String text) async {
+    final headers = {
+      'Authorization': 'Bearer $_hfToken',
+      'Content-Type': 'application/json',
+    };
+
+    // Nous définissons des labels descriptifs en français pour une meilleure précision NLU
+    final Map<String, String> labelToId = {
+      "Faire un versement d'argent ou un dépôt sur le compte": "versement",
+      "Effectuer un retrait d'argent au guichet": "retrait",
+      "Faire un virement bancaire ou un transfert d'argent": "virement",
+      "Demander une information ou un renseignement au service client": "renseignement",
+    };
+
+    final body = json.encode({
+      "inputs": text,
+      "parameters": {"candidate_labels": labelToId.keys.toList()},
+    });
+
+    final response = await http.post(Uri.parse(_hfNluUrl),
+        headers: headers, body: body);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final String bestLabel = data['labels'][0];
+      final double confidence = (data['scores'][0] as num).toDouble();
+      final String serviceId = labelToId[bestLabel] ?? "autre";
+
+      return SolobaResult(
+        text: getServiceLabel(serviceId),
+        bambara: text,
+        serviceId: serviceId,
+        confidence: confidence,
+        model: "NLU-mDeBERTa",
+        version: "v3",
+      );
+    } else {
+      throw Exception("Erreur NLU HF: ${response.statusCode}");
+    }
+  }
+
+  SolobaResult _analyzeIntentWithKeywords(String transcribedText) {
+    // Normalisation du texte (plus agressive)
     final String input = transcribedText
         .toLowerCase()
         .replaceAll('’', "'")
         .replaceAll('?', "")
         .replaceAll('!', "")
-        .replaceAll(',', " ");
+        .replaceAll('.', "")
+        .replaceAll(',', " ")
+        .replaceAll('ɔ', "o") // Tolérance orthographe Bambara
+        .replaceAll('ɛ', "e")
+        .replaceAll('ɲ', "ny")
+        .trim();
 
     final List<String> words =
         input.split(' ').where((w) => w.length > 1).toList();
 
-    // Mapping des intentions (Synonymes Bambara & Français)
+    print("[Soloba Debug] Transcription reçue: \"$transcribedText\"");
+    print("[Soloba Debug] Texte normalisé: \"$input\"");
+
+    // Mapping des intentions (Bibliothèque élargie)
     final Map<String, List<String>> mapping = {
-      'versement': ['don', 'donli', 'ladi', 'versement', 'depot', 'se'],
-      'retrait': ['bo', 'bɔ', 'bɔli', 'retrait', 'argent'],
-      'virement': ['ci', 'cili', 'virement', 'transfert'],
+      'versement': [
+        'don',
+        'donli',
+        'donni',
+        'wari don',
+        'ladi',
+        'versement',
+        'depot',
+        'doli',
+        'se',
+        'remplir',
+      ],
+      'retrait': [
+        'bo',
+        'bɔ',
+        'boili',
+        'bɔli',
+        'wari bo',
+        'wari bɔ',
+        'retrait',
+        'argent',
+      ],
+      'virement': [
+        'ci',
+        'cili',
+        'wari ci',
+        'virement',
+        'transfert',
+        'envoi',
+        'envoyer',
+      ],
       'renseignement': [
         'ɲini',
+        'nyini',
+        'nyinikali',
         'ɲɛfɔli',
         'nyefoli',
         'kalo',
+        'kibaru',
+        'ko',
+        'kunu',
         'renseignement',
         'info',
         'hakɛ',
         'niningali',
+        'question',
       ],
     };
 
@@ -195,9 +305,19 @@ class SolobaService {
       double score = 0;
       for (final keyword in keywords) {
         if (input.contains(keyword)) {
-          // Plus de poids si le mot exact est présent isolément
-          score += (words.contains(keyword)) ? 1.0 : 0.5;
+          // Les expressions multi-mots (ex: "wari don") valent plus
+          bool isMultiWord = keyword.contains(' ');
+          if (isMultiWord) {
+            score += 1.5;
+          } else {
+            // Plus de poids si le mot exact est présent isolément
+            score += (words.contains(keyword)) ? 1.0 : 0.5;
+          }
         }
+      }
+
+      if (score > 0) {
+        print("[Soloba Debug] Score pour $serviceId: $score");
       }
 
       if (score > bestScore) {
