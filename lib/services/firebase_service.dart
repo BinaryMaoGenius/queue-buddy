@@ -13,6 +13,10 @@ import '../models/guichet.dart';
 import '../models/ticket.dart';
 
 class FirebaseService {
+  void dispose() {
+    // Nettoyage si nécessaire (ex: fermer les StreamControllers s'ils n'étaient pas statiques)
+  }
+
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
   FirebaseFirestore get _db => FirebaseFirestore.instance;
 
