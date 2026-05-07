@@ -107,6 +107,7 @@ class SolobaService {
     );
 
     // Ajouter le token si disponible (nécessaire si le Space n'est pas public)
+    request.headers['User-Agent'] = 'QueueBuddy/1.0';
     if (_hfToken.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $_hfToken';
     }
@@ -135,7 +136,10 @@ class SolobaService {
   }
 
   Future<SolobaResult> _recognizeInferenceApi(List<int> audioBytes) async {
-    final headers = {'Content-Type': 'application/octet-stream'};
+    final headers = {
+      'Content-Type': 'application/octet-stream',
+      'User-Agent': 'QueueBuddy/1.0',
+    };
     if (_hfToken.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_hfToken';
     }
@@ -269,6 +273,10 @@ class SolobaService {
         'déposer',
         'mettre',
         'ajout',
+        'deposit',
+        'money in',
+        'add money',
+        'pay in',
       ],
       'retrait': [
         'bo',
@@ -282,6 +290,10 @@ class SolobaService {
         'enlever',
         'retirer',
         'sortir',
+        'withdraw',
+        'withdrawal',
+        'take out',
+        'get cash',
       ],
       'virement': [
         'ci',
@@ -293,6 +305,9 @@ class SolobaService {
         'envoyer',
         'transférer',
         'envoyé',
+        'transfer',
+        'wire',
+        'send money',
       ],
       'renseignement': [
         'ɲini',
@@ -313,6 +328,10 @@ class SolobaService {
         'connaître',
         'demander',
         'savoir',
+        'help',
+        'ask',
+        'support',
+        'details',
       ],
     };
 
@@ -365,18 +384,18 @@ class SolobaService {
     );
   }
 
-  String getServiceLabel(String id) {
+  String getServiceLabel(String id, {String locale = 'fr'}) {
     switch (id) {
       case 'versement':
-        return "Versement";
+        return locale == 'en' ? "Deposit" : "Versement";
       case 'retrait':
-        return "Retrait";
+        return locale == 'en' ? "Withdrawal" : "Retrait";
       case 'virement':
-        return "Virement";
+        return locale == 'en' ? "Transfer" : "Virement";
       case 'renseignement':
-        return "Renseignement";
+        return locale == 'en' ? "Information" : "Renseignement";
       default:
-        return "Service Client";
+        return locale == 'en' ? "Customer Service" : "Service Client";
     }
   }
 

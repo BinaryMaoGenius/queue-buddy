@@ -169,9 +169,9 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                   icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
-                title: const Text(
-                  AppStrings.yourTicket,
-                  style: TextStyle(
+                title: Text(
+                  AppStrings.yourTicket('fr'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     letterSpacing: 3,
                     fontSize: 14,
@@ -354,15 +354,34 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    Text(
-                                      "Estimation : ~${currentTicket.position * 5} minutes",
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.9,
-                                        ),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                    StreamBuilder<Map<String, dynamic>>(
+                                      stream: _firebaseService.getAnalyticsStream(currentTicket.agenceId),
+                                      builder: (context, animSnapshot) {
+                                        final analytics = animSnapshot.data;
+                                        // We get all tickets to calculate the load factor
+                                        return StreamBuilder<List<Ticket>>(
+                                          stream: _firebaseService.getTickets(currentTicket.agenceId),
+                                          builder: (context, ticketsSnapshot) {
+                                            final activeTickets = ticketsSnapshot.data ?? [];
+                                            final waitTime = _firebaseService.estimateWaitTime(
+                                              activeTickets,
+                                              currentTicket.position,
+                                              analytics,
+                                            );
+
+                                            return Text(
+                                              "Estimation : ~${waitTime.toStringAsFixed(0)} minutes",
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.9,
+                                                ),
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
                                     ),
                                     const SizedBox(height: 6),
                                     Text(

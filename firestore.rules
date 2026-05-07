@@ -112,8 +112,9 @@ service cloud.firestore {
     // Clients
     // -------------------------
     match /clients/{clientId} {
-      // Public read is required for unauthenticated "find or create client" flow.
-      allow read: if true;
+      // Agents can read all client data.
+      // Public read is denied to prevent PII (phone) leaks.
+      allow read: if isAgent();
 
       allow create: if request.resource.data.keys().hasOnly([
           'nom',
@@ -126,16 +127,8 @@ service cloud.firestore {
         request.resource.data.created_at is timestamp &&
         request.resource.data.updated_at is timestamp;
 
-      allow update: if request.resource.data.keys().hasOnly([
-          'nom',
-          'tel',
-          'created_at',
-          'updated_at'
-        ]) &&
-        isValidName(request.resource.data.nom) &&
-        isValidPhone(request.resource.data.tel) &&
-        request.resource.data.created_at is timestamp &&
-        request.resource.data.updated_at is timestamp;
+      // Update is restricted to agents.
+      allow update: if isAgent();
 
       allow delete: if false;
     }
@@ -145,7 +138,9 @@ service cloud.firestore {
     // -------------------------
     match /agence_counters/{agenceId} {
       // Required for unauthenticated transactional ticket creation flow.
-      allow read: if true;
+      // We keep 'get' but deny 'list' to avoid discovering all agency IDs.
+      allow get: if true;
+      allow list: if isAgent();
 
       allow create, update: if request.resource.data.keys().hasOnly([
           'last_ticket_number',
@@ -165,8 +160,9 @@ service cloud.firestore {
     // Tickets
     // -------------------------
     match /tickets/{ticketId} {
-      // Read is public for queue tracking UI.
-      allow read: if true;
+      // Allow individual ticket tracking by ID (get), but deny listing (list) to the public.
+      allow get: if true;
+      allow list: if isAgent();
 
       // Ticket creation by public clients with strict schema.
       allow create: if request.resource.data.keys().hasOnly([
@@ -210,6 +206,8 @@ service cloud.firestore {
           (!('validation_time' in request.resource.data) || request.resource.data.validation_time is timestamp)
         ) || (
           // Public feedback update with strict constraints.
+          // Note: Here we allow update by ANYONE if they know the ticketId.
+          // In a production app, we would use a token or auth.
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'comment']) &&
           request.resource.data.rating is int &&
           request.resource.data.rating >= 1 &&

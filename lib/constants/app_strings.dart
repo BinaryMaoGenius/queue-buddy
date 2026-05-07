@@ -1,15 +1,121 @@
 class AppStrings {
   // General UI
   static const String appName = "Queue-Buddy";
+
+  static String homeTitle(String locale) => locale == 'en' ? "HOME" : "ACCUEIL";
+  static const String siraTitle = "SIRA";
+
+  static String proximityAgencies(String locale) =>
+      locale == 'en' ? "Agencies nearby" : "Agences à proximité";
+
+  static String minWaiting(num min, String locale) =>
+      locale == 'en' ? "$min min wait" : "$min min d'attente";
+
+  static String tagline(String locale) =>
+      locale == 'en' ? "Smart waiting, zero stress" : "L'attente devient intelligente";
+
+  static String takeTicket(String locale) =>
+      locale == 'en' ? "GET A TICKET" : "PRENDRE UN TICKET";
+
+  static String history(String locale) =>
+      locale == 'en' ? "HISTORY" : "HISTORIQUE";
+
+  static String estimatedTime(String locale) =>
+      locale == 'en' ? "ESTIMATED TIME" : "TEMPS ESTIMÉ";
+
+  static const String live = "Live";
+
+  static String peopleWaitingSuffix(String locale) =>
+      locale == 'en' ? "people waiting" : "personnes dans l'attente";
+
+  static String availableServices(String locale) =>
+      locale == 'en' ? "Available services" : "Services disponibles";
+
+  static String chooseVisitObject(String locale) =>
+      locale == 'en' ? "Choose the object of your visit" : "Choisissez l'objet de votre visite";
+
+  static String yourInfo(String locale) =>
+      locale == 'en' ? "Your Information" : "Vos informations";
+
+  static String fullName(String locale) =>
+      locale == 'en' ? "Full Name" : "Nom complet";
+
+  static String phone(String locale) =>
+      locale == 'en' ? "Phone" : "Téléphone";
+
+  static String enterNameError(String locale) =>
+      locale == 'en' ? "Please enter your name" : "Veuillez entrer votre nom";
+
+  static String enterPhoneError(String locale) =>
+      locale == 'en' ? "Please enter your number" : "Veuillez entrer votre numéro";
+
+  // Ticket Page
+  static String yourTicket(String locale) =>
+      locale == 'en' ? "YOUR TICKET" : "VOTRE TICKET";
+
+  static String pleaseWait(String locale) =>
+      locale == 'en' ? "Please wait..." : "Veuillez patienter...";
+
+  static String notificationSoon(String locale) =>
+      locale == 'en' ? "We will notify you when it's your turn" : "Nous vous notifierons dès que c'est votre tour";
+
+  static String returnHome(String locale) =>
+      locale == 'en' ? "RETURN HOME" : "RETOUR À L'ACCUEIL";
+
+  static String itsYourTurn(String locale) =>
+      locale == 'en' ? "It's your turn!" : "C'est votre tour !";
+
+  static String presentAtCounter(String locale) =>
+      locale == 'en' ? "Please present yourself at the counter" : "Veuillez vous présenter au guichet";
+
+  static String positionInQueue(String locale) =>
+      locale == 'en' ? "Position in queue" : "Position dans la file";
+
+  static String peopleInFront(String locale) =>
+      locale == 'en' ? "people in front of you" : "personnes devant vous";
+
+  // Assistant
+  static String assistantBtn(String locale) =>
+      locale == 'en' ? "ENGLISH ASSISTANT" : "ASSISTANT SOLOBA";
+
+  static String analyzing(String locale) =>
+      locale == 'en' ? "Analyzing..." : "Analyse en cours...";
+
+  static String solobaListening(String locale) =>
+      locale == 'en' ? "I'm listening..." : "Je vous écoute...";
+
+  static String solobaListeningDesc(String locale) =>
+      locale == 'en' ? "Speak to Sira in English or French" : "Parlez à Sira en Français ou Bambara";
+
+  static String stop(String locale) => locale == 'en' ? "STOP" : "ARRÊTER";
+  static String cancel(String locale) => locale == 'en' ? "CANCEL" : "ANNULER";
+
+  static String aiUnderstood(String locale) =>
+      locale == 'en' ? "SIRA AI UNDERSTOOD:" : "L'IA SOLOBA V3 A COMPRIS :";
+
+  static String retry(String locale) => locale == 'en' ? "RETRY" : "REPRÉCISER";
+  static String continueBtn(String locale) => locale == 'en' ? "CONTINUE" : "CONTINUER";
+
+  // QR Code & Download
+  static String downloadTicket(String locale) =>
+      locale == 'en' ? "DOWNLOAD TICKET" : "TÉLÉCHARGER LE TICKET";
+
+  static String ticketSaved(String locale) =>
+      locale == 'en' ? "Ticket saved!" : "Ticket sauvegardé !";
+
+  static String scanAtArrival(String locale) =>
+      locale == 'en' ? "Present this QR code at arrival" : "Présentez ce QR code à l'arrivée";
+
+  // --- Static legacy constants for components not yet migrated ---
+  static const String appNameLegacy = "Queue-Buddy";
   static const String homeTitle = "SIRA";
   static const String proximityAgencies = "Agences à proximité";
-  static String minWaiting(num min) => "$min min d'attente";
+  static String minWaitingLegacy(num min) => "$min min d'attente";
   static const String tagline = "L'attente devient intelligente";
   static const String takeTicket = "PRENDRE UN TICKET";
   static const String takeMyTicket = "PRENDRE MON TICKET";
   static const String history = "HISTORIQUE";
   static const String estimatedTime = "TEMPS ESTIMÉ";
-  static const String live = "Live";
   static const String peopleWaitingSuffix = "personnes dans l'attente";
   static const String availableServices = "Services disponibles";
   static const String chooseVisitObject = "Choisissez l'objet de votre visite";
@@ -22,8 +128,6 @@ class AppStrings {
   static const String phoneMinLengthError =
       "Le numéro doit contenir au moins 8 chiffres";
   static const String errorPrefix = "Erreur: ";
-
-  // Ticket Page
   static const String yourTicket = "VOTRE TICKET";
   static const String pleaseWait = "Veuillez patienter...";
   static const String notificationSoon =
@@ -33,34 +137,24 @@ class AppStrings {
   static const String presentAtCounter = "Veuillez vous présenter au guichet";
   static const String positionInQueue = "Position dans la file";
   static const String peopleInFront = "personnes devant vous";
-
-  // History Page
   static const String historyTitle = "HISTORIQUE";
   static const String noTickets = "Aucun ticket récent";
   static const String futureTicketsPrompt =
       "Vos futurs tickets apparaîtront ici.";
-
-  // Review System
   static const String yourReview = "VOTRE AVIS";
   static const String howWasWait = "Comment s'est passée votre attente ?";
   static const String optionalComment = "Un commentaire ? (Optionnel)";
   static const String send = "ENVOYER";
   static const String thanksFeedback = "Merci pour votre retour !";
-
-  // ASR Intents / Services (Bambara mapping)
   static const String versement = "Versement";
   static const String retrait = "Retrait";
   static const String ouvertureCompte = "Ouverture de compte";
   static const String reclamation = "Réclamation";
-
-  // Back Office
   static const String backOfficeTitle = "DASHBOARD SUPERVISEUR";
   static const String callNext = "APPELER LE SUIVANT";
   static const String validateCurrent = "VALIDER LE TICKET ACTUEL";
   static const String serveDone = "SERVICE TERMINÉ";
   static const String noTicketsToCall = "Aucun ticket à appeler";
-
-  // Assistant
   static const String assistantBtn = "ASSISTANT SOLOBA";
   static const String analyzing = "Analyse en cours...";
   static const String solobaListeningBambara = "Soloba bɛ i lamɛnna...";
@@ -73,11 +167,7 @@ class AppStrings {
   static const String microphoneDenied = "Permission micro refusée.";
   static const String audioError = "Impossible de générer le fichier audio.";
   static const String solobaErrorPrefix = "Erreur Soloba: ";
-
-  // New UI
   static const String peakHoursLabel = "AFFLUENCE :";
-
-  // Notification Bell
   static const String notifTicketTaken = "Ticket bien pris !";
   static const String notifTicketTakenBody =
       "Votre ticket a été pris avec succès. Vous recevrez des alertes.";
@@ -94,28 +184,20 @@ class AppStrings {
       "I ka waati sera. I ka taa guichet la sisan.";
   static const String notifications = "Notifications";
   static const String noNotifications = "Aucune notification";
-
-  // QR Code & Download
   static const String qrCodeLabel = "QR Code d'identification";
   static const String scanAtArrival = "Présentez ce QR code à l'arrivée";
   static const String downloadTicket = "TÉLÉCHARGER LE TICKET";
   static const String ticketSaved = "Ticket sauvegardé !";
   static const String ticketShared = "Partage du ticket...";
-
-  // GAB vs Guichet
   static const String gabLabel = "GAB (Distributeur)";
   static const String guichetLabel = "Guichet";
   static const String gabDescription = "Guichet automatique — Carte bancaire";
   static const String guichetDescription =
       "Guichet humain — Service personnalisé";
-
-  // Welcome Greeting
   static const String welcomeGreeting =
       "Aw ni ce! Ne ye SIRA ye. N bɛ i dɛmɛ ka i ka ticket ta ni hɛrɛ ye, i kana i ka waati bɔnya.";
   static const String welcomeGreetingFr =
       "Bonjour ! Je suis SIRA. Je vous aide à prendre votre ticket en toute tranquillité pour optimiser votre temps.";
-
-  // Bambara voice guides by screen
   static const String homeVoiceGuideBm =
       "Nin yoro la, i bɛ se ka banque yoro sugandi. I bɛ se fana ka Soloba wele walasa ka i ka baara fɔ n ye Bambara kan na.";
   static const String takeTicketVoiceGuideBm =
@@ -128,14 +210,10 @@ class AppStrings {
       "Nin ye dashboard ye. Yan i bɛ se ka ticketw lajɛ, ka se ka wele ka tuma bɔ, ani ka baara kɛli ɲɛnabɔ.";
   static const String analyticsVoiceGuideBm =
       "Nin ye statistiques yoro ye. Yan i bɛ se ka lɛrɛnni lajɛ, waati hakɛ, ani tile ka baara kɛcogo lajɛ ka yidɛsɛbɛn sɔrɔ.";
-
-  // Voice assistant not available
   static const String asrUnavailable =
       "Le serveur vocal est indisponible. Utilisez le mode démonstration.";
   static const String demoMode = "MODE DÉMO";
   static const String tryDemoVoice = "ESSAYER (DÉMO)";
-
-  // Dashboard KPI
   static const String kpiWaiting = "En Attente";
   static const String kpiAvgWait = "Attente Moyenne";
   static const String kpiServed = "Servis (Jour)";

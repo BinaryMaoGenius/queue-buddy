@@ -460,25 +460,54 @@ class FirebaseService {
       int calledCount = 0;
       final Map<int, int> volumeByHour = {};
 
+      // Dynamic estimation per service type (optional enhancement)
+      final Map<String, List<int>> waitTimesByService = {};
+
       for (final t in tickets) {
         final hour = t.createdAt.hour;
         volumeByHour[hour] = (volumeByHour[hour] ?? 0) + 1;
 
         if (t.callTime != null) {
-          totalWaitMinutes += t.callTime!.difference(t.createdAt).inMinutes;
+          final wait = t.callTime!.difference(t.createdAt).inMinutes;
+          totalWaitMinutes += wait;
           calledCount++;
+
+          waitTimesByService.putIfAbsent(t.typeOperation, () => []).add(wait);
         }
       }
 
-      final avgWait = calledCount > 0 ? totalWaitMinutes / calledCount : 0.0;
+      final avgWait = calledCount > 0 ? totalWaitMinutes / calledCount : 5.0;
+
+      // Calculate per-service averages
+      final Map<String, double> serviceAvgWait = {};
+      waitTimesByService.forEach((service, waits) {
+        serviceAvgWait[service] = waits.reduce((a, b) => a + b) / waits.length;
+      });
 
       return {
         'avgWait': avgWait,
+        'serviceAvgWait': serviceAvgWait,
         'volumeByHour': volumeByHour,
         'totalToday': tickets.length,
         'processedToday': calledCount,
       };
     });
+  }
+
+  /// Returns a realistic estimation based on current queue and history.
+  double estimateWaitTime(
+    List<Ticket> activeTickets,
+    int myPosition,
+    Map<String, dynamic>? analytics,
+  ) {
+    if (myPosition <= 0) return 0;
+
+    final avgWait = (analytics?['avgWait'] as num?)?.toDouble() ?? 5.0;
+
+    // Use a factor of current load
+    final loadFactor = activeTickets.length > 10 ? 1.2 : 1.0;
+
+    return myPosition * avgWait * loadFactor;
   }
 
   // -------------------- TERMINALS --------------------

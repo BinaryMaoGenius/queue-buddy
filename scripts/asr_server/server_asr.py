@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import torch
 import os
 import tempfile
+import tarfile
 import librosa
 import soundfile as sf
 import numpy as np
@@ -93,11 +94,38 @@ def load_model():
     # 2. Charger le modèle NeMo
     print(f"[BOOT] Chargement du modèle Soloni depuis : {MODEL_PATH}")
     try:
-        # ASRModel.restore_from détecte automatiquement la classe (CTC, RNNT ou Hybrid)
-        asr_model = nemo_asr.models.ASRModel.restore_from(
-            MODEL_PATH, 
-            map_location=torch.device("cpu")
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            print(f"[BOOT] Extraction du modèle vers {tmpdir}...")
+            with tarfile.open(MODEL_PATH, "r") as tar:
+                tar.extractall(path=tmpdir)
+            
+            config_path = os.path.join(tmpdir, "model_config.yaml")
+            conf = OmegaConf.load(config_path)
+            
+            # --- PATCH CONFIG ---
+            OmegaConf.set_struct(conf, False)
+            if 'train_ds' in conf: del conf['train_ds']
+            if 'validation_ds' in conf: del conf['validation_ds']
+            if 'test_ds' in conf: del conf['test_ds']
+            
+            if 'decoding' in conf and 'greedy' in conf.decoding and 'boosting_tree' in conf.decoding.greedy:
+                 if 'key_phrase_items_list' in conf.decoding.greedy.boosting_tree:
+                     del conf.decoding.greedy.boosting_tree['key_phrase_items_list']
+            
+            print("[BOOT] Configuration patchée avec succès.")
+            
+            print("[BOOT] Instanciation du modèle hybride...")
+            from nemo.utils import AppState
+            app_state = AppState()
+            app_state.nemo_file_folder = tmpdir
+            
+            asr_model = EncDecHybridRNNTCTCBPEModel.from_config_dict(conf)
+            
+            ckpt_path = os.path.join(tmpdir, "model_weights.ckpt")
+            print(f"[BOOT] Chargement des poids depuis {ckpt_path}...")
+            state_dict = torch.load(ckpt_path, map_location='cpu')
+            asr_model.load_state_dict(state_dict, strict=False)
+
         asr_model.eval()
         try:
             asr_model.change_decoding_strategy(decoder_type="ctc")

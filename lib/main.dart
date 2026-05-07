@@ -10,19 +10,34 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('fr', null);
+  
+  debugPrint("--- 🚀 Démarrage de l'application ---");
 
   try {
+    debugPrint("Initialisation de la localisation (fr)...");
+    await initializeDateFormatting('fr', null);
+  } catch (e) {
+    debugPrint("⚠️ Erreur localisation: $e");
+  }
+
+  try {
+    debugPrint("Initialisation Firebase...");
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    debugPrint("✅ Firebase initialisé");
   } catch (e) {
-    debugPrint("Firebase initialization info: $e");
+    debugPrint("ℹ️ Firebase initialization info (normal si sur Windows sans config): $e");
   }
 
   runApp(
-    Provider<FirebaseService>(
-      create: (_) => FirebaseService(),
+    MultiProvider(
+      providers: [
+        Provider<FirebaseService>(
+          create: (_) => FirebaseService(),
+          dispose: (_, service) => service.dispose(),
+        ),
+      ],
       child: const QueueBuddyApp(),
     ),
   );
