@@ -371,7 +371,7 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       AppStrings.chooseVisitObject('fr'),
                       style: TextStyle(
                         color: AppColors.mutedForeground,
@@ -506,7 +506,7 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                     }),
 
                     const SizedBox(height: 40),
-                    const Text(
+                    Text(
                       AppStrings.yourInfo('fr'),
                       style: TextStyle(
                         fontWeight: FontWeight.w900,

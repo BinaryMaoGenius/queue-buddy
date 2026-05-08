@@ -262,7 +262,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 icon: const Icon(Icons.mic_rounded),
-                label: const Text(
+                label: Text(
                   AppStrings.assistantBtn('fr'),
                   style: TextStyle(
                     fontWeight: FontWeight.w900,

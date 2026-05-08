@@ -129,7 +129,7 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   AppStrings.ticketSaved('fr'),
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
@@ -431,7 +431,7 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                             ElevatedButton.icon(
                                   onPressed: _downloadTicket,
                                   icon: const Icon(Icons.download_rounded),
-                                  label: const Text(
+                                  label: Text(
                                     AppStrings.downloadTicket('fr'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.w900,
@@ -489,7 +489,7 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
+                              child: Text(
                                 AppStrings.returnHome('fr'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
@@ -672,7 +672,7 @@ class _TicketCard extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     if (isCalled)
-                      const Column(
+                      Column(
                             children: [
                               Icon(
                                 Icons.notifications_active_rounded,
@@ -706,7 +706,7 @@ class _TicketCard extends StatelessWidget {
                     else
                       Column(
                         children: [
-                          const Text(
+                          Text(
                             AppStrings.positionInQueue('fr'),
                             style: TextStyle(
                               fontSize: 14,
@@ -734,7 +734,7 @@ class _TicketCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             AppStrings.peopleInFront('fr'),
                             style: TextStyle(
                               fontSize: 13,
