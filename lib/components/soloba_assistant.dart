@@ -263,7 +263,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                 elevation: 0,
                 icon: const Icon(Icons.mic_rounded),
                 label: const Text(
-                  AppStrings.assistantBtn,
+                  AppStrings.assistantBtn('fr'),
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
@@ -470,7 +470,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                   const SizedBox(height: 64),
                   Text(
                     isProcessing
-                        ? AppStrings.analyzing
+                        ? AppStrings.analyzing('fr')
                         : AppStrings.solobaListeningBambara,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontSize: 24,
@@ -481,8 +481,8 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                   const SizedBox(height: 12),
                   Text(
                     isProcessing
-                        ? AppStrings.pleaseWait
-                        : AppStrings.solobaListeningDesc,
+                        ? AppStrings.pleaseWait('fr')
+                        : AppStrings.solobaListeningDesc('fr'),
                     style: const TextStyle(
                       color: AppColors.mutedForeground,
                       fontWeight: FontWeight.w700,
@@ -526,7 +526,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                         onPressed: toggleListening,
                         icon: const Icon(Icons.stop_rounded),
                         label: const Text(
-                          AppStrings.stop,
+                          AppStrings.stop('fr'),
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2,
@@ -555,7 +555,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                         onPressed: cancel,
                         icon: const Icon(Icons.close_rounded),
                         label: const Text(
-                          AppStrings.cancel,
+                          AppStrings.cancel('fr'),
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2,
@@ -618,7 +618,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                     ),
                     const SizedBox(height: 32),
                     Text(
-                      "${AppStrings.aiUnderstood} (${resultBambara != resultText ? 'DJELIA + AI' : 'KEYWORD'})",
+                      "${AppStrings.aiUnderstood('fr')} (${resultBambara != resultText ? 'DJELIA + AI' : 'KEYWORD'})",
                       style: const TextStyle(
                         fontSize: 10,
                         color: AppColors.mutedForeground,
@@ -670,7 +670,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                               foregroundColor: AppColors.mutedForeground,
                             ),
                             child: const Text(
-                              AppStrings.retry,
+                              AppStrings.retry('fr'),
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1,
@@ -690,7 +690,7 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                               elevation: 0,
                             ),
                             child: const Text(
-                              AppStrings.continueBtn,
+                              AppStrings.continueBtn('fr'),
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1,

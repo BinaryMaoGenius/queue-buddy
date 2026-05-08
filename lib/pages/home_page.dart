@@ -305,7 +305,7 @@ class _HomePageState extends State<HomePage> {
                                             });
                                       },
                                       child: Text(
-                                        AppStrings.homeTitle,
+                                        AppStrings.homeTitle('fr'),
                                         textAlign: TextAlign.center,
                                         style: Theme.of(
                                           context,
@@ -321,7 +321,7 @@ class _HomePageState extends State<HomePage> {
                                     .fadeIn(delay: 400.ms)
                                     .scale(begin: const Offset(0.9, 0.9)),
                                 Text(
-                                  AppStrings.tagline,
+                                  AppStrings.tagline('fr'),
                                   textAlign: TextAlign.center,
                                   style: Theme.of(
                                     context,
@@ -467,7 +467,7 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        AppStrings.proximityAgencies,
+                        AppStrings.proximityAgencies('fr'),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Container(

@@ -240,7 +240,7 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      AppStrings.estimatedTime,
+                                      AppStrings.estimatedTime('fr'),
                                       style: Theme.of(
                                         context,
                                       ).textTheme.labelSmall?.copyWith(
@@ -342,7 +342,7 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  "${widget.agency.enAttenteCount} ${AppStrings.peopleWaitingSuffix}",
+                                  "${widget.agency.enAttenteCount} ${AppStrings.peopleWaitingSuffix('fr')}",
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
@@ -361,7 +361,7 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          AppStrings.availableServices,
+                          AppStrings.availableServices('fr'),
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: Responsive.fs(18),
@@ -372,7 +372,7 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      AppStrings.chooseVisitObject,
+                      AppStrings.chooseVisitObject('fr'),
                       style: TextStyle(
                         color: AppColors.mutedForeground,
                         fontWeight: FontWeight.w500,
@@ -507,7 +507,7 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
 
                     const SizedBox(height: 40),
                     const Text(
-                      AppStrings.yourInfo,
+                      AppStrings.yourInfo('fr'),
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
@@ -520,11 +520,11 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                       controller: _nomController,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                       decoration: _inputDecoration(
-                        AppStrings.fullName,
+                        AppStrings.fullName('fr'),
                         Icons.person_rounded,
                       ),
                       validator:
-                          (v) => v!.isEmpty ? AppStrings.enterNameError : null,
+                          (v) => v!.isEmpty ? AppStrings.enterNameError('fr') : null,
                     ).animate(delay: 800.ms).fadeIn(),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -536,12 +536,12 @@ class _TakeTicketPageState extends State<TakeTicketPage> {
                         LengthLimitingTextInputFormatter(15),
                       ],
                       decoration: _inputDecoration(
-                        AppStrings.phone,
+                        AppStrings.phone('fr'),
                         Icons.phone_rounded,
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty)
-                          return AppStrings.enterPhoneError;
+                          return AppStrings.enterPhoneError('fr');
                         if (v.length < 8) return AppStrings.phoneMinLengthError;
                         return null;
                       },

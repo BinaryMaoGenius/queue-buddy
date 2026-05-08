@@ -305,7 +305,7 @@ class _AgencyCardState extends State<AgencyCard> {
                                   ),
                                   SizedBox(width: Responsive.wp(3)),
                                   Text(
-                                    AppStrings.takeTicket.toUpperCase(),
+                                    AppStrings.takeTicket('fr').toUpperCase(),
                                     style: TextStyle(
                                       fontSize: Responsive.fs(14),
                                     ),

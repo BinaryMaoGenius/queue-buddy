@@ -130,7 +130,7 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  AppStrings.ticketSaved,
+                  AppStrings.ticketSaved('fr'),
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ],
@@ -385,7 +385,7 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      AppStrings.notificationSoon,
+                                      AppStrings.notificationSoon('fr'),
                                       style: TextStyle(
                                         color: Colors.white.withValues(
                                           alpha: 0.7,
@@ -432,7 +432,7 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                                   onPressed: _downloadTicket,
                                   icon: const Icon(Icons.download_rounded),
                                   label: const Text(
-                                    AppStrings.downloadTicket,
+                                    AppStrings.downloadTicket('fr'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 1,
@@ -490,7 +490,7 @@ class _TicketPageState extends State<TicketPage> with TickerProviderStateMixin {
                                 elevation: 0,
                               ),
                               child: const Text(
-                                AppStrings.returnHome,
+                                AppStrings.returnHome('fr'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1,
@@ -653,7 +653,7 @@ class _TicketCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            AppStrings.scanAtArrival,
+                            AppStrings.scanAtArrival('fr'),
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -681,7 +681,7 @@ class _TicketCard extends StatelessWidget {
                               ),
                               SizedBox(height: 16),
                               Text(
-                                AppStrings.itsYourTurn,
+                                AppStrings.itsYourTurn('fr'),
                                 style: TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w900,
@@ -691,7 +691,7 @@ class _TicketCard extends StatelessWidget {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                AppStrings.presentAtCounter,
+                                AppStrings.presentAtCounter('fr'),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AppColors.mutedForeground,
@@ -707,7 +707,7 @@ class _TicketCard extends StatelessWidget {
                       Column(
                         children: [
                           const Text(
-                            AppStrings.positionInQueue,
+                            AppStrings.positionInQueue('fr'),
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.mutedForeground,
@@ -735,7 +735,7 @@ class _TicketCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            AppStrings.peopleInFront,
+                            AppStrings.peopleInFront('fr'),
                             style: TextStyle(
                               fontSize: 13,
                               color: AppColors.mutedForeground,
