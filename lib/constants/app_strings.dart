@@ -116,7 +116,7 @@ class AppStrings {
   static const String takeMyTicket = "PRENDRE MON TICKET";
   static const String historyLegacy = "HISTORIQUE";
   static const String estimatedTimeLegacy = "TEMPS ESTIMÉ";
-  static const String live = "Live";
+
   static const String peopleWaitingSuffixLegacy = "personnes dans l'attente";
   static const String availableServicesLegacy = "Services disponibles";
   static const String chooseVisitObjectLegacy = "Choisissez l'objet de votre visite";

@@ -525,9 +525,9 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                       child: TextButton.icon(
                         onPressed: toggleListening,
                         icon: const Icon(Icons.stop_rounded),
-                        label: const Text(
+                        label: Text(
                           AppStrings.stop('fr'),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2,
                           ),
@@ -554,9 +554,9 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                       child: TextButton.icon(
                         onPressed: cancel,
                         icon: const Icon(Icons.close_rounded),
-                        label: const Text(
+                        label: Text(
                           AppStrings.cancel('fr'),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2,
                           ),
@@ -669,9 +669,9 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                               ),
                               foregroundColor: AppColors.mutedForeground,
                             ),
-                            child: const Text(
+                            child: Text(
                               AppStrings.retry('fr'),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1,
                               ),
@@ -689,9 +689,9 @@ class _SolobaAssistantState extends State<SolobaAssistant> {
                               ),
                               elevation: 0,
                             ),
-                            child: const Text(
+                            child: Text(
                               AppStrings.continueBtn('fr'),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1,
                               ),

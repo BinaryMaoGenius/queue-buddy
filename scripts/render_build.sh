@@ -1,16 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Arrêter le script en cas d'erreur
+# Stop script on any error
 set -e
 
 echo "--- 🚀 Démarrage du build pour Render (Mode Verbeux Actif) ---"
 
 # --- 📊 Diagnostic Système ---
 echo "--- 🖥️ Infos Système ---"
-free -h || echo "Commande 'free' non disponible"
-df -h .
-echo "Utilisateur actuel : $(whoami)"
-echo "Dossier actuel : $(pwd)"
+if command -v free > /dev/null; then
+  free -h
+fi
+if command -v df > /dev/null; then
+  df -h .
+fi
+whoami && pwd
 
 # --- ⚙️ Optimisation de la mémoire ---
 export MALLOC_ARENA_MAX=2
@@ -19,7 +22,6 @@ echo "MALLOC_ARENA_MAX réglé sur $MALLOC_ARENA_MAX"
 
 # --- 🐦 Configuration de Flutter ---
 FLUTTER_CHANNEL="stable"
-
 if [ ! -d "flutter" ]; then
   echo "--- 📥 Téléchargement de Flutter ($FLUTTER_CHANNEL) ---"
   git clone https://github.com/flutter/flutter.git -b $FLUTTER_CHANNEL --depth 1
@@ -28,7 +30,7 @@ else
   cd flutter && git pull && cd ..
 fi
 
-# Ajouter Flutter au PATH
+# Add Flutter to PATH
 export PATH="$(pwd)/flutter/bin:$PATH"
 
 # --- 🛠️ Préparation de Flutter ---
@@ -44,7 +46,6 @@ flutter pub get -v
 
 # --- 🏗️ Build Web ---
 echo "--- 🏗️ Construction de l'application Web (Mode Verbeux) ---"
-# On ajoute le flag -v à flutter build pour un maximum de détails si ça plante
 flutter build web --release -v \
   --no-tree-shake-icons \
   --dart-define=HF_TOKEN=$HF_TOKEN \
