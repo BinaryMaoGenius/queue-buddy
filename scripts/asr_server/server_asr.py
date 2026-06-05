@@ -104,9 +104,10 @@ def load_model():
             
             # --- PATCH CONFIG ---
             OmegaConf.set_struct(conf, False)
-            if 'train_ds' in conf: del conf['train_ds']
-            if 'validation_ds' in conf: del conf['validation_ds']
-            if 'test_ds' in conf: del conf['test_ds']
+            # Utiliser des configurations vides plutôt que None ou de les supprimer
+            if 'train_ds' in conf: conf['train_ds'] = OmegaConf.create({'manifest_filepath': None})
+            if 'validation_ds' in conf: conf['validation_ds'] = OmegaConf.create({'manifest_filepath': None})
+            if 'test_ds' in conf: conf['test_ds'] = OmegaConf.create({'manifest_filepath': None})
             
             if 'decoding' in conf and 'greedy' in conf.decoding and 'boosting_tree' in conf.decoding.greedy:
                  if 'key_phrase_items_list' in conf.decoding.greedy.boosting_tree:
@@ -125,6 +126,10 @@ def load_model():
             print(f"[BOOT] Chargement des poids depuis {ckpt_path}...")
             state_dict = torch.load(ckpt_path, map_location='cpu')
             asr_model.load_state_dict(state_dict, strict=False)
+
+        # Désactiver le struct mode sur la config du modèle instancié
+        # pour éviter les erreurs d'accès pendant transcribe()
+        OmegaConf.set_struct(asr_model.cfg, False)
 
         asr_model.eval()
         try:
@@ -166,9 +171,24 @@ async def transcribe(file: UploadFile = File(...)):
         sf.write(clean_path, audio, 16000)
         
         result = asr_model.transcribe([clean_path])
-        text = result[0] if isinstance(result, list) and result else ""
+        
+        # NeMo peut retourner une liste d'Hypothesis, de dicts ou de chaînes brutes
+        text = ""
+        if isinstance(result, list) and result:
+            first_res = result[0]
+            if hasattr(first_res, 'text'):
+                text = first_res.text
+            elif isinstance(first_res, dict) and 'text' in first_res:
+                text = first_res['text']
+            else:
+                text = str(first_res)
+        elif result:
+            text = str(result)
+            
         return {"text": text, "status": "success"}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"[RUNTIME ERROR] {e}")
         return {"error": str(e), "status": "error"}
     finally:

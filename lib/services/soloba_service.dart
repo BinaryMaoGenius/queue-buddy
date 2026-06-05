@@ -51,25 +51,10 @@ class SolobaService {
   Future<SolobaResult> recognizeSpeech(List<int> audioBytes) async {
     // Ordre de priorité : Djelia (principal) > Space (dédié) > Local (dev) > Inference API (backup)
 
-    // 0) Djelia ASR (prioritaire)
-    try {
-      if (_djelia.isConfigured) {
-        print("[Soloba] Tentative ASR Djelia v2...");
-        final text = await _djelia.transcribe(
-          Uint8List.fromList(audioBytes),
-          translateToFrench: true, // On récupère le français pour mieux comprendre l'action
-          useV2: true,
-        );
-        if (text.trim().isNotEmpty) {
-          return await analyzeIntent(text);
-        }
-        throw Exception("Transcription Djelia vide");
-      } else {
-        print("[Soloba] DJELIA_API_KEY non configurée, fallback activé.");
-      }
-    } catch (e) {
-      print("[Soloba] ASR Djelia échouée : $e");
-    }
+// Djelia ASR disabled – we now rely on HF Space and fallback APIs.
+// The previous implementation attempted to use Djelia when DJELIA_API_KEY was set.
+// It has been removed to simplify the pipeline and avoid unnecessary dependencies.
+
 
     // 1) Space HF (production)
     try {

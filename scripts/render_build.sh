@@ -35,6 +35,8 @@ export PATH="$(pwd)/flutter/bin:$PATH"
 
 # --- 🛠️ Préparation de Flutter ---
 echo "--- 🛠️ Diagnostic Flutter ---"
+echo "--- 📦 Installing unzip (required for Flutter) ---"
+  # apt-get update -y && apt-get install -y unzip  # Disabled on Render (no sudo)
 flutter doctor -v
 
 echo "--- 🌐 Activation du Web ---"
