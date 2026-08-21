@@ -1,6 +1,5 @@
 <div align="center">
-  <h1>🎙️ Queue Buddy</h1>
-  <p><strong>Voice-enabled smart queue management for bank branches — with Bambara language support.</strong></p>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,25&height=200&section=header&text=Queue%20Buddy&fontSize=52&fontColor=ffffff&animation=fadeIn&fontAlignY=40&desc=Voice-enabled%20queue%20management%20%E2%80%94%20Bambara%20language%20support%20%F0%9F%87%B2%F0%9F%87%B1&descAlignY=60&descSize=14&descColor=cccccc" width="100%" />
 </div>
 
 <div align="center">
@@ -12,6 +11,8 @@
 </div>
 
 <br/>
+
+---
 
 ## Overview
 
@@ -54,5 +55,8 @@ Queue Buddy addresses this directly by integrating a Bambara speech recognition 
 
 ## Developer
 
-Built by [Emmanuel Elisé Koné](https://github.com/BinaryMaoGenius) — Frontend Developer · AI & NLP Researcher · Mali 🇲🇱  
-Part of the [Farafina Lab](https://github.com/BinaryMaoGenius) initiative.
+Built by [Emmanuel Elisé Koné](https://github.com/BinaryMaoGenius) — Frontend Developer · AI & NLP Researcher · Mali 🇲🇱
+
+<div align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,25&height=100&section=footer" width="100%" />
+</div>
